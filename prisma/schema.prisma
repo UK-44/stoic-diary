@@ -1,29 +1,95 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Stoic Diary - データモデル
+// 仕様: docs/spec/02-domain-model.md
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
+  // Prisma 7: 接続 URL は prisma.config.ts の datasource / 実行時は PrismaClient の adapter で指定
   provider = "postgresql"
 }
 
-model User {
- id    Int     @id @default(autoincrement())
- email String  @unique
- name  String?
- posts Post[]
+enum ComponentType {
+  FIXED_MESSAGE
+  BULLET_LIST
+  GROUPED_LIST
 }
 
-model Post {
- id        Int     @id @default(autoincrement())
- title     String
- content   String?
- published Boolean @default(false)
- author    User    @relation(fields: [authorId], references: [id])
- authorId  Int
+model User {
+  id        String       @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
+  email     String       @unique
+  name      String?
+  image     String?
+  entries   DiaryEntry[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model DiaryComponent {
+  id         String            @id @default(cuid())
+  key        String            @unique
+  name       String
+  type       ComponentType
+  config     Json              @default("{}")
+  archivedAt DateTime?
+  items      FormVersionItem[]
+  values     DiaryEntryValue[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+}
+
+model FormVersion {
+  id            String            @id @default(cuid())
+  name          String
+  effectiveFrom DateTime          @db.Date
+  note          String?
+  items         FormVersionItem[]
+  entries       DiaryEntry[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([effectiveFrom])
+}
+
+model FormVersionItem {
+  id            String         @id @default(cuid())
+  formVersionId String
+  componentId   String
+  order         Int
+  overrides     Json?
+  formVersion   FormVersion    @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
+  component     DiaryComponent @relation(fields: [componentId], references: [id])
+
+  @@unique([formVersionId, componentId])
+  @@index([formVersionId, order])
+}
+
+model DiaryEntry {
+  id            String            @id @default(cuid())
+  userId        String
+  date          DateTime          @db.Date
+  goal          String?
+  rating        Int?
+  formVersionId String?
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formVersion   FormVersion?      @relation(fields: [formVersionId], references: [id])
+  values        DiaryEntryValue[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model DiaryEntryValue {
+  id          String         @id @default(cuid())
+  entryId     String
+  componentId String
+  value       Json
+  entry       DiaryEntry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  component   DiaryComponent @relation(fields: [componentId], references: [id])
+
+  @@unique([entryId, componentId])
 }
