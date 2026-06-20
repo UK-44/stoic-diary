@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { saveDiaryEntry } from "@/lib/diary/actions";
 import {
   emptyValueFor,
@@ -28,7 +27,6 @@ const RATING_LABELS = ["", "悪い", "悪くない", "良い", "素晴らしい"
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function DiaryEditor({ dateKey, form, initialGoal, initialRating, existing }: Props) {
-  const router = useRouter();
   const [started, setStarted] = useState(existing);
   const [goal, setGoal] = useState(initialGoal);
   const [rating, setRating] = useState<number | null>(initialRating);
@@ -38,7 +36,6 @@ export function DiaryEditor({ dateKey, form, initialGoal, initialRating, existin
   const [status, setStatus] = useState<SaveStatus>("idle");
 
   const dirty = useRef(false);
-  const refreshed = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 変更があれば 800ms デバウンスで自動保存する。
@@ -65,11 +62,8 @@ export function DiaryEditor({ dateKey, form, initialGoal, initialRating, existin
       values: payload,
     });
     setStatus(r.ok ? "saved" : "error");
-    // 新規エントリ作成時は週ストリップの記入済み表示を更新する。
-    if (r.ok && !refreshed.current) {
-      refreshed.current = true;
-      router.refresh();
-    }
+    // 注: 週ストリップの記入済みドットは次回ナビゲーション時に反映される
+    // （保存ごとに router.refresh() で全再描画すると重いため行わない）。
   }
 
   function markDirty() {

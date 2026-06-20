@@ -24,24 +24,26 @@ export async function resolveFormForDate(
 ): Promise<ResolvedForm | null> {
   const date = dateKeyToUtcDate(dateKey);
 
-  const formVersion = preferFormVersionId
-    ? await prisma.formVersion.findFirst({
-        where: { id: preferFormVersionId, userId },
-        include: formVersionInclude,
-      })
-    : await prisma.formVersion.findFirst({
-        where: { userId, effectiveFrom: { lte: date } },
-        orderBy: { effectiveFrom: "desc" },
-        include: formVersionInclude,
-      });
+  // フォーム版と既存エントリは互いに独立なので並列に取得する（往復を 1 波にまとめる）。
+  const [formVersion, entry] = await Promise.all([
+    preferFormVersionId
+      ? prisma.formVersion.findFirst({
+          where: { id: preferFormVersionId, userId },
+          include: formVersionInclude,
+        })
+      : prisma.formVersion.findFirst({
+          where: { userId, effectiveFrom: { lte: date } },
+          orderBy: { effectiveFrom: "desc" },
+          include: formVersionInclude,
+        }),
+    prisma.diaryEntry.findUnique({
+      where: { userId_date: { userId, date } },
+      include: { values: true },
+    }),
+  ]);
 
   if (!formVersion) return null;
 
-  // 既存エントリの値を componentId 単位で引けるようにする。
-  const entry = await prisma.diaryEntry.findUnique({
-    where: { userId_date: { userId, date } },
-    include: { values: true },
-  });
   const valueByComponent = new Map<string, ComponentValue>(
     entry?.values.map((v) => [v.componentId, v.value as ComponentValue]) ?? [],
   );

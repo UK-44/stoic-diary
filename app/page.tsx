@@ -25,22 +25,23 @@ export default async function Home({
   const today = todayKey();
   const selected = d && isDateKey(d) ? d : today;
 
-  // 選択日を含む週の記入済み状況。
+  // 週の記入状況とフォーム解決は独立なので並列取得する。
   const week = weekKeys(selected);
-  const weekEntries = await prisma.diaryEntry.findMany({
-    where: {
-      userId: user.id,
-      date: {
-        gte: dateKeyToUtcDate(week[0]),
-        lte: dateKeyToUtcDate(week[6]),
+  const [weekEntries, form] = await Promise.all([
+    prisma.diaryEntry.findMany({
+      where: {
+        userId: user.id,
+        date: {
+          gte: dateKeyToUtcDate(week[0]),
+          lte: dateKeyToUtcDate(week[6]),
+        },
       },
-    },
-    select: { date: true, goal: true, rating: true, formVersionId: true },
-  });
+      select: { date: true, goal: true, rating: true, formVersionId: true },
+    }),
+    resolveFormForDate(selected, user.id),
+  ]);
   const entryDates = new Set(weekEntries.map((e) => dateToKey(e.date)));
   const selectedEntry = weekEntries.find((e) => dateToKey(e.date) === selected) ?? null;
-
-  const form = await resolveFormForDate(selected, user.id, selectedEntry?.formVersionId);
 
   return (
     <div className="flex flex-col gap-8">
