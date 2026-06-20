@@ -5,6 +5,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color } from "@tiptap/extension-text-style";
 import Placeholder from "@tiptap/extension-placeholder";
+import { TextSelection } from "@tiptap/pm/state";
 
 const COLORS = ["#f87171", "#fbbf24", "#34d399", "#60a5fa", "#c084fc"];
 
@@ -32,7 +33,20 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
       Placeholder.configure({ placeholder: placeholder ?? "何か書く…" }),
     ],
     content: value || "",
-    editorProps: { attributes: { class: "tiptap" } },
+    editorProps: {
+      attributes: { class: "tiptap" },
+      // Esc で選択を解除 → バブルメニューを閉じる（キャレットは残す）。
+      handleKeyDown: (view, event) => {
+        if (event.key === "Escape" && !view.state.selection.empty) {
+          const pos = view.state.selection.to;
+          view.dispatch(
+            view.state.tr.setSelection(TextSelection.create(view.state.doc, pos)),
+          );
+          return true;
+        }
+        return false;
+      },
+    },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
