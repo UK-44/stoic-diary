@@ -5,102 +5,12 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { dateKeyToUtcDate, isDateKey } from "@/lib/date";
 import { Prisma } from "@/lib/generated/prisma/client";
-import type { ComponentType } from "@/lib/diary/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-// ---------- コンポーネントマスタ ----------
-
-export type ComponentInput = {
-  name: string;
-  type: ComponentType;
-  placeholder?: string;
-  groups?: string[];
-};
-
-function buildConfig(input: ComponentInput): Prisma.InputJsonValue {
-  switch (input.type) {
-    case "BULLET_LIST":
-      return input.placeholder ? { placeholder: input.placeholder } : {};
-    case "GROUPED_LIST":
-      return { groups: (input.groups ?? []).filter((g) => g.trim() !== "") };
-    case "FIXED_MESSAGE":
-    default:
-      return {};
-  }
-}
-
-export async function createComponent(input: ComponentInput): Promise<ActionResult> {
-  const user = await requireUser();
-  const name = input.name.trim();
-  if (name === "") return { ok: false, error: "名前を入力してください" };
-
-  // key はユーザーごとに自動採番（手入力しない）。order は末尾に追加。
-  const [count, agg] = await Promise.all([
-    prisma.diaryComponent.count({ where: { userId: user.id } }),
-    prisma.diaryComponent.aggregate({
-      where: { userId: user.id },
-      _max: { order: true },
-    }),
-  ]);
-
-  try {
-    await prisma.diaryComponent.create({
-      data: {
-        userId: user.id,
-        key: `c${count + 1}`,
-        name,
-        type: input.type,
-        config: buildConfig(input),
-        order: (agg._max.order ?? 0) + 10,
-      },
-    });
-  } catch {
-    return { ok: false, error: "作成に失敗しました" };
-  }
-  revalidatePath("/admin/components");
-  return { ok: true };
-}
-
-export async function updateComponent(
-  id: string,
-  input: Omit<ComponentInput, "type">,
-): Promise<ActionResult> {
-  const user = await requireUser();
-  const existing = await prisma.diaryComponent.findFirst({
-    where: { id, userId: user.id },
-  });
-  if (!existing) return { ok: false, error: "対象が見つかりません" };
-
-  await prisma.diaryComponent.update({
-    where: { id },
-    data: {
-      name: input.name.trim(),
-      config: buildConfig({ ...input, type: existing.type }),
-    },
-  });
-  revalidatePath("/admin/components");
-  return { ok: true };
-}
-
-export async function setComponentArchived(
-  id: string,
-  archived: boolean,
-): Promise<ActionResult> {
-  const user = await requireUser();
-  const existing = await prisma.diaryComponent.findFirst({
-    where: { id, userId: user.id },
-    select: { id: true },
-  });
-  if (!existing) return { ok: false, error: "対象が見つかりません" };
-
-  await prisma.diaryComponent.update({
-    where: { id },
-    data: { archivedAt: archived ? new Date() : null },
-  });
-  revalidatePath("/admin/components");
-  return { ok: true };
-}
+// ---------- コンポーネント並び替え ----------
+// 注: コンポーネントマスタ（種類・名前・config）は仕様上 UI から変更しない。
+// ユーザーが調整できるのは並び順（order）と、フォーム構成での選択/文面のみ。
 
 /** コンポーネントの並び順を 1 つ上/下に移動する（隣と order を入れ替え）。 */
 export async function moveComponent(
@@ -125,7 +35,8 @@ export async function moveComponent(
     prisma.diaryComponent.update({ where: { id: a.id }, data: { order: b.order } }),
     prisma.diaryComponent.update({ where: { id: b.id }, data: { order: a.order } }),
   ]);
-  revalidatePath("/admin/components");
+  revalidatePath("/settings");
+  revalidatePath("/");
   return { ok: true };
 }
 

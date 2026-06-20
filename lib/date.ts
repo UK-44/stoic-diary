@@ -33,3 +33,22 @@ export function shiftDateKey(key: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return dateToKey(d);
 }
+
+/** その日付を含む週（日曜始まり）の 7 日分の key を返す */
+export function weekKeys(key: string): string[] {
+  const d = dateKeyToUtcDate(key);
+  const sunday = shiftDateKey(key, -d.getUTCDay());
+  return Array.from({ length: 7 }, (_, i) => shiftDateKey(sunday, i));
+}
+
+const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"];
+
+/** key の曜日（日本語 1 文字） */
+export function weekdayJa(key: string): string {
+  return WEEKDAY_JA[dateKeyToUtcDate(key).getUTCDay()];
+}
+
+/** key の「日」部分（1〜31） */
+export function dayOfMonth(key: string): number {
+  return dateKeyToUtcDate(key).getUTCDate();
+}

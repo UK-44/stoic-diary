@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
-import { logout } from "@/app/login/actions";
+import { AppNav } from "@/components/nav/AppNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,35 +31,18 @@ export default async function RootLayout({
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
-        <header className="border-b border-zinc-800">
-          <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Stoic Diary
-            </Link>
-            {user && (
-              <nav className="flex items-center gap-4 text-sm text-zinc-400">
-                <Link href="/" className="hover:text-zinc-100">
-                  一覧
-                </Link>
-                <Link href="/admin/forms" className="hover:text-zinc-100">
-                  構成
-                </Link>
-                <Link href="/admin/components" className="hover:text-zinc-100">
-                  部品
-                </Link>
-                <form action={logout}>
-                  <button type="submit" className="hover:text-zinc-100">
-                    ログアウト
-                  </button>
-                </form>
-              </nav>
-            )}
+      <body className="min-h-full bg-zinc-950 text-zinc-100">
+        {user ? (
+          <div className="flex min-h-screen">
+            <AppNav />
+            {/* スマホは下部タブ分の余白を確保 */}
+            <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-8 pb-24 md:px-8 md:pb-8">
+              {children}
+            </main>
           </div>
-        </header>
-        <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-          {children}
-        </main>
+        ) : (
+          <main className="mx-auto w-full max-w-3xl px-5 py-8">{children}</main>
+        )}
       </body>
     </html>
   );

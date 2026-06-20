@@ -18,10 +18,11 @@ enum ComponentType {
 }
 
 model User {
-  id          String           @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
-  email       String           @unique
-  name        String?
-  image       String?
+  id           String          @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
+  email        String          @unique
+  name         String?
+  image        String?
+  longTermGoal String? // 日々の目標とは別の、長期目標（プロフィール的設定）
   components  DiaryComponent[]
   formVersions FormVersion[]
   entries     DiaryEntry[]
