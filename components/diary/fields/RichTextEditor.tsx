@@ -58,7 +58,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
     <>
       <BubbleMenu
         editor={editor}
-        className="flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900 p-1 shadow-xl"
+        className="flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-1.5 shadow-xl"
       >
         <MarkBtn active={editor.isActive("bold")} title="太字 (⌘B)" onClick={() => editor.chain().focus().toggleBold().run()}>
           <span className="font-bold">B</span>
@@ -66,22 +66,23 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
         <MarkBtn active={editor.isActive("underline")} title="下線 (⌘U)" onClick={() => editor.chain().focus().toggleUnderline().run()}>
           <span className="underline">U</span>
         </MarkBtn>
-        <span className="mx-1 h-4 w-px bg-zinc-700" />
+        <span className="mx-0.5 h-7 w-px bg-zinc-700" />
         {COLORS.map((c) => (
           <button
             key={c}
             type="button"
             title="文字色"
             onClick={() => editor.chain().focus().setColor(c).run()}
-            className="m-0.5 h-4 w-4 rounded-full border border-zinc-600 hover:scale-110"
-            style={{ backgroundColor: c }}
-          />
+            className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-zinc-800"
+          >
+            <span className="h-5 w-5 rounded-full border border-zinc-600" style={{ backgroundColor: c }} />
+          </button>
         ))}
         <button
           type="button"
           title="色をリセット"
           onClick={() => editor.chain().focus().unsetColor().run()}
-          className="ml-0.5 px-1 text-xs text-zinc-400 hover:text-zinc-100"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-base text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
         >
           ✕
         </button>
@@ -107,7 +108,7 @@ function MarkBtn({
       type="button"
       title={title}
       onClick={onClick}
-      className={`flex h-7 w-7 items-center justify-center rounded text-sm transition-colors ${
+      className={`flex h-9 w-9 items-center justify-center rounded-lg text-base transition-colors ${
         active ? "bg-zinc-200 text-zinc-900" : "text-zinc-200 hover:bg-zinc-800"
       }`}
     >
