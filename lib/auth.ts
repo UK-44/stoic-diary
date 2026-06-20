@@ -6,38 +6,39 @@ import { ensureUserDefaults } from "@/lib/diary/defaults";
 
 /**
  * 現在ログイン中のオーナーユーザーを返す（未ログインなら null）。
- * Supabase の認証ユーザー（UUID / email）を正とし、対応する User を作成/取得する。
- * 新規ユーザーには既定の日記構成をブートストラップする。
+ *
+ * 認証検証は proxy.ts の getUser()（トークン更新込み）に任せ、ここでは
+ * getClaims()（ローカル JWT 検証・ネットワーク往復なし）で sub/email を読む。
+ * これにより毎遷移ごとの Supabase 往復を 1 回減らす。
  * 同一リクエスト内（layout + page など）の重複呼び出しは cache で 1 回にまとめる。
  */
 export const getCurrentUser = cache(async function getCurrentUser() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
 
-  const existing = await prisma.user.findUnique({ where: { id: user.id } });
-  const dbUser =
-    existing ??
-    (await prisma.user.create({
-      data: {
-        id: user.id,
-        email: user.email ?? "",
-        name: (user.user_metadata?.name as string | undefined) ?? null,
-      },
-    }));
+  const id = claims.sub;
+  const email = (claims.email as string | undefined) ?? "";
 
-  if (existing && user.email && existing.email !== user.email) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { email: user.email },
-    });
+  const existing = await prisma.user.findUnique({ where: { id } });
+  if (existing) {
+    if (email && existing.email !== email) {
+      await prisma.user.update({ where: { id }, data: { email } });
+    }
+    return existing;
   }
 
-  // 既定構成が無ければブートストラップ（冪等・自己修復）。
-  await ensureUserDefaults(dbUser.id);
-  return dbUser;
+  // 新規ユーザーのみ作成し、既定の日記構成をブートストラップする。
+  const created = await prisma.user.create({
+    data: {
+      id,
+      email,
+      name: (claims.user_metadata?.name as string | undefined) ?? null,
+    },
+  });
+  await ensureUserDefaults(created.id);
+  return created;
 });
 
 /** 認証必須のヘルパ。未ログインなら /login へリダイレクト（多層防御）。 */
