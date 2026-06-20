@@ -52,3 +52,34 @@ export function weekdayJa(key: string): string {
 export function dayOfMonth(key: string): number {
   return dateKeyToUtcDate(key).getUTCDate();
 }
+
+/** その月の 1 日の key */
+export function monthStartKey(key: string): string {
+  return `${key.slice(0, 7)}-01`;
+}
+
+/** key を n ヶ月ずらした、その月の 1 日の key */
+export function addMonths(key: string, n: number): string {
+  const d = dateKeyToUtcDate(monthStartKey(key));
+  d.setUTCMonth(d.getUTCMonth() + n);
+  return dateToKey(d);
+}
+
+/** その月の全日付 key（1 日〜末日） */
+export function monthKeys(key: string): string[] {
+  const start = dateKeyToUtcDate(monthStartKey(key));
+  const month = start.getUTCMonth();
+  const out: string[] = [];
+  const d = new Date(start);
+  while (d.getUTCMonth() === month) {
+    out.push(dateToKey(d));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+
+/** key を「YYYY年M月」表記に */
+export function monthLabel(key: string): string {
+  const d = dateKeyToUtcDate(key);
+  return `${d.getUTCFullYear()}年${d.getUTCMonth() + 1}月`;
+}

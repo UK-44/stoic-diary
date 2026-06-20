@@ -17,17 +17,37 @@ enum ComponentType {
   GROUPED_LIST
 }
 
+enum PeriodType {
+  WEEK
+  MONTH
+}
+
 model User {
   id           String          @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
   email        String          @unique
   name         String?
   image        String?
   longTermGoal String? // 日々の目標とは別の、長期目標（プロフィール的設定）
-  components  DiaryComponent[]
-  formVersions FormVersion[]
-  entries     DiaryEntry[]
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  components    DiaryComponent[]
+  formVersions  FormVersion[]
+  entries       DiaryEntry[]
+  periodReviews PeriodReview[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model PeriodReview {
+  id          String     @id @default(cuid())
+  userId      String
+  periodType  PeriodType
+  periodStart DateTime   @db.Date // 週=日曜始まり / 月=1日
+  content     String?
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([userId, periodType, periodStart])
+  @@index([userId, periodType, periodStart])
 }
 
 model DiaryComponent {

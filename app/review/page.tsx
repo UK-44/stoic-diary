@@ -1,7 +1,21 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { dateKeyToUtcDate, dateToKey, shiftDateKey, todayKey } from "@/lib/date";
+import {
+  addMonths,
+  dateKeyToUtcDate,
+  dateToKey,
+  isDateKey,
+  monthKeys,
+  monthLabel,
+  monthStartKey,
+  shiftDateKey,
+  todayKey,
+  weekKeys,
+} from "@/lib/date";
+import { RatingTrend } from "@/components/review/RatingTrend";
+import { PeriodReflection } from "@/components/review/PeriodReflection";
+import type { PeriodType } from "@/lib/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -10,45 +24,110 @@ const RATING_LABELS = ["", "悪い", "悪くない", "良い", "素晴らしい"
 export default async function ReviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; start?: string }>;
 }) {
   const user = await requireUser();
-  const { period: p } = await searchParams;
-  const period = p === "month" ? "month" : "week";
+  const { period: p, start: s } = await searchParams;
+  const periodType: PeriodType = p === "month" ? "MONTH" : "WEEK";
   const today = todayKey();
-  const days = period === "month" ? 30 : 7;
-  const from = shiftDateKey(today, -(days - 1));
+
+  // 期間の開始日（週=日曜 / 月=1日）。
+  const defaultStart =
+    periodType === "WEEK" ? weekKeys(today)[0] : monthStartKey(today);
+  const start = s && isDateKey(s) ? s : defaultStart;
+
+  const days = periodType === "WEEK" ? weekKeys(start) : monthKeys(start);
+  const from = days[0];
+  const to = days[days.length - 1];
 
   const entries = await prisma.diaryEntry.findMany({
     where: {
       userId: user.id,
-      date: { gte: dateKeyToUtcDate(from), lte: dateKeyToUtcDate(today) },
+      date: { gte: dateKeyToUtcDate(from), lte: dateKeyToUtcDate(to) },
     },
     orderBy: { date: "desc" },
-    include: { _count: { select: { values: true } } },
+    select: { date: true, goal: true, rating: true },
   });
+
+  const ratingByDay = new Map(
+    entries.map((e) => [dateToKey(e.date), e.rating ?? null]),
+  );
+  const cells = days.map((key) => ({ key, rating: ratingByDay.get(key) ?? null }));
 
   const rated = entries.filter((e) => e.rating != null);
   const avg =
     rated.length > 0
-      ? (rated.reduce((s, e) => s + (e.rating ?? 0), 0) / rated.length).toFixed(1)
+      ? (rated.reduce((sum, e) => sum + (e.rating ?? 0), 0) / rated.length).toFixed(1)
       : "—";
 
+  const review = await prisma.periodReview.findUnique({
+    where: {
+      userId_periodType_periodStart: {
+        userId: user.id,
+        periodType,
+        periodStart: dateKeyToUtcDate(start),
+      },
+    },
+  });
+
+  const prevStart =
+    periodType === "WEEK" ? shiftDateKey(start, -7) : addMonths(start, -1);
+  const nextStart =
+    periodType === "WEEK" ? shiftDateKey(start, 7) : addMonths(start, 1);
+  const periodLabel =
+    periodType === "WEEK" ? `${from} 〜 ${to}` : monthLabel(start);
+
+  const base = (start: string) =>
+    `/review?period=${periodType === "WEEK" ? "week" : "month"}&start=${start}`;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-7">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold tracking-tight">Review</h1>
         <div className="flex gap-1 text-sm">
-          <Tab href="/review?period=week" label="1週間" active={period === "week"} />
-          <Tab href="/review?period=month" label="1ヶ月" active={period === "month"} />
+          <Tab href="/review?period=week" label="1週間" active={periodType === "WEEK"} />
+          <Tab href="/review?period=month" label="1ヶ月" active={periodType === "MONTH"} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Stat label="記入した日数" value={`${entries.length} / ${days}`} />
-        <Stat label="平均の総合評価" value={avg} />
+      {/* 期間ナビ */}
+      <div className="flex items-center justify-between text-sm">
+        <Link href={base(prevStart)} className="text-zinc-400 hover:text-zinc-100">
+          ← 前へ
+        </Link>
+        <span className="font-medium">{periodLabel}</span>
+        <Link href={base(nextStart)} className="text-zinc-400 hover:text-zinc-100">
+          次へ →
+        </Link>
       </div>
 
+      {/* サマリー（評価推移＋指標） */}
+      <section className="flex flex-col gap-4 rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
+        <RatingTrend cells={cells} />
+        <div className="flex gap-6 text-sm">
+          <span className="text-zinc-400">
+            記入 <span className="font-semibold text-zinc-100">{entries.length}</span> / {days.length} 日
+          </span>
+          <span className="text-zinc-400">
+            平均評価 <span className="font-semibold text-zinc-100">{avg}</span>
+          </span>
+        </div>
+      </section>
+
+      {/* まとめ振り返り */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          この期間の振り返り
+        </h2>
+        <PeriodReflection
+          periodType={periodType}
+          periodStart={start}
+          initialContent={review?.content ?? ""}
+          longTermGoal={user.longTermGoal ?? null}
+        />
+      </section>
+
+      {/* 期間内の日記一覧 */}
       <section className="flex flex-col gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
           この期間の日記
@@ -93,14 +172,5 @@ function Tab({ href, label, active }: { href: string; label: string; active: boo
     >
       {label}
     </Link>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-4 py-4">
-      <div className="text-2xl font-semibold">{value}</div>
-      <div className="text-xs text-zinc-500">{label}</div>
-    </div>
   );
 }
