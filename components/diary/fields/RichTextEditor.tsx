@@ -1,11 +1,12 @@
 "use client";
 
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color } from "@tiptap/extension-text-style";
 import Placeholder from "@tiptap/extension-placeholder";
 
-const COLORS = ["#fca5a5", "#fcd34d", "#86efac", "#93c5fd", "#d8b4fe", "#ffffff"];
+const COLORS = ["#f87171", "#fbbf24", "#34d399", "#60a5fa", "#c084fc"];
 
 type Props = {
   value: string;
@@ -15,8 +16,10 @@ type Props = {
 
 /**
  * Notion 風のリッチテキスト入力（TipTap）。
+ * - 枠・常時ツールバーは持たず、本文として地続きに編集する
  * - 行頭 "- " で箇条書き、Tab でネスト
- * - 太字 / 下線 / 文字色
+ * - 文字を選択した時だけバブルメニュー（太字 / 下線 / 文字色）が出る
+ * - ⌘/Ctrl+B, ⌘/Ctrl+U も使える
  * 保存形式は HTML 文字列。
  */
 export function RichTextEditor({ value, placeholder, onChange }: Props) {
@@ -26,78 +29,63 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
       StarterKit,
       TextStyle,
       Color,
-      Placeholder.configure({ placeholder: placeholder ?? "入力…" }),
+      Placeholder.configure({ placeholder: placeholder ?? "何か書く…" }),
     ],
     content: value || "",
-    editorProps: {
-      attributes: {
-        class:
-          "tiptap min-h-[2.5rem] rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm leading-relaxed outline-none focus:border-zinc-500",
-      },
-    },
+    editorProps: { attributes: { class: "tiptap" } },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
   if (!editor) {
-    return (
-      <div className="min-h-[2.5rem] rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-600">
-        {placeholder ?? "入力…"}
-      </div>
-    );
+    return <div className="tiptap text-zinc-600">{placeholder ?? "何か書く…"}</div>;
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <Toolbar editor={editor} />
-      <EditorContent editor={editor} />
-    </div>
-  );
-}
-
-function Toolbar({ editor }: { editor: Editor }) {
-  return (
-    <div className="flex items-center gap-1">
-      <Btn active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()} title="太字">
-        <span className="font-bold">B</span>
-      </Btn>
-      <Btn active={editor.isActive("underline")} onClick={() => editor.chain().focus().toggleUnderline().run()} title="下線">
-        <span className="underline">U</span>
-      </Btn>
-      <Btn active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} title="箇条書き">
-        ⋮≡
-      </Btn>
-      <span className="mx-1 h-4 w-px bg-zinc-700" />
-      {COLORS.map((c) => (
-        <button
-          key={c}
-          type="button"
-          title="文字色"
-          onClick={() => editor.chain().focus().setColor(c).run()}
-          className="h-4 w-4 rounded-full border border-zinc-700"
-          style={{ backgroundColor: c }}
-        />
-      ))}
-      <button
-        type="button"
-        title="色をリセット"
-        onClick={() => editor.chain().focus().unsetColor().run()}
-        className="ml-1 text-xs text-zinc-500 hover:text-zinc-200"
+    <>
+      <BubbleMenu
+        editor={editor}
+        className="flex items-center gap-0.5 rounded-lg border border-zinc-700 bg-zinc-900 p-1 shadow-xl"
       >
-        ✕
-      </button>
-    </div>
+        <MarkBtn active={editor.isActive("bold")} title="太字 (⌘B)" onClick={() => editor.chain().focus().toggleBold().run()}>
+          <span className="font-bold">B</span>
+        </MarkBtn>
+        <MarkBtn active={editor.isActive("underline")} title="下線 (⌘U)" onClick={() => editor.chain().focus().toggleUnderline().run()}>
+          <span className="underline">U</span>
+        </MarkBtn>
+        <span className="mx-1 h-4 w-px bg-zinc-700" />
+        {COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            title="文字色"
+            onClick={() => editor.chain().focus().setColor(c).run()}
+            className="m-0.5 h-4 w-4 rounded-full border border-zinc-600 hover:scale-110"
+            style={{ backgroundColor: c }}
+          />
+        ))}
+        <button
+          type="button"
+          title="色をリセット"
+          onClick={() => editor.chain().focus().unsetColor().run()}
+          className="ml-0.5 px-1 text-xs text-zinc-400 hover:text-zinc-100"
+        >
+          ✕
+        </button>
+      </BubbleMenu>
+      <EditorContent editor={editor} />
+    </>
   );
 }
 
-function Btn({
+function MarkBtn({
   active,
-  onClick,
   title,
+  onClick,
   children,
 }: {
   active: boolean;
-  onClick: () => void;
   title: string;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -105,8 +93,8 @@ function Btn({
       type="button"
       title={title}
       onClick={onClick}
-      className={`flex h-6 min-w-6 items-center justify-center rounded px-1.5 text-xs transition-colors ${
-        active ? "bg-zinc-200 text-zinc-900" : "text-zinc-400 hover:bg-zinc-800"
+      className={`flex h-7 w-7 items-center justify-center rounded text-sm transition-colors ${
+        active ? "bg-zinc-200 text-zinc-900" : "text-zinc-200 hover:bg-zinc-800"
       }`}
     >
       {children}

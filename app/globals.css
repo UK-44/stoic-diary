@@ -9,7 +9,13 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-/* TipTap リッチテキストエディタ */
+/* TipTap リッチテキストエディタ（枠なし・本文として地続き） */
+.tiptap {
+  min-height: 1.9rem;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  cursor: text;
+}
 .tiptap:focus {
   outline: none;
 }
