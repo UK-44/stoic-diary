@@ -4,14 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { saveDiaryEntry } from "@/lib/diary/actions";
 import {
   emptyValueFor,
-  type BulletListConfig,
+  normalizeValue,
+  type RichTextConfig,
   type ComponentValue,
-  type GroupedListConfig,
+  type LabeledTextConfig,
+  type LabeledTextValue,
   type ResolvedComponent,
   type ResolvedForm,
 } from "@/lib/diary/types";
-import { BulletList } from "./fields/BulletList";
-import { GroupedList } from "./fields/GroupedList";
+import { RichTextEditor } from "./fields/RichTextEditor";
+import { LabeledText } from "./fields/LabeledText";
 import { FixedMessage } from "./fields/FixedMessage";
 
 type Props = {
@@ -179,19 +181,19 @@ function renderComponent(
   switch (c.type) {
     case "FIXED_MESSAGE":
       return <FixedMessage message={c.message ?? ""} />;
-    case "BULLET_LIST":
+    case "RICH_TEXT":
       return (
-        <BulletList
-          value={(value as string[]) ?? []}
-          placeholder={(c.config as BulletListConfig).placeholder}
+        <RichTextEditor
+          value={(value as string) ?? ""}
+          placeholder={(c.config as RichTextConfig).placeholder}
           onChange={onChange}
         />
       );
-    case "GROUPED_LIST":
+    case "LABELED_TEXT":
       return (
-        <GroupedList
-          groups={(c.config as GroupedListConfig).groups ?? []}
-          value={(value as Record<string, string[]>) ?? {}}
+        <LabeledText
+          groups={(c.config as LabeledTextConfig).groups ?? []}
+          value={(value as LabeledTextValue) ?? {}}
           onChange={onChange}
         />
       );
@@ -204,7 +206,10 @@ function initValues(components: ResolvedComponent[]): Record<string, ComponentVa
   const entries: [string, ComponentValue][] = [];
   for (const c of components) {
     if (c.type === "FIXED_MESSAGE") continue;
-    const v = c.value ?? emptyValueFor(c.type, c.config);
+    const v =
+      c.value !== null
+        ? normalizeValue(c.type, c.value, c.config)
+        : emptyValueFor(c.type, c.config);
     if (v !== null) entries.push([c.componentId, v]);
   }
   return Object.fromEntries(entries);

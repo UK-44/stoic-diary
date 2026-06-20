@@ -52,6 +52,7 @@ export default async function Home({
 
       {form ? (
         <DiaryEditor
+          key={selected}
           dateKey={selected}
           form={form}
           initialGoal={selectedEntry?.goal ?? ""}

@@ -2,19 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { dateToKey } from "@/lib/date";
-import type { ComponentValue } from "@/lib/diary/types";
+import { valueToPlainText, type ComponentValue } from "@/lib/diary/types";
 
 export const dynamic = "force-dynamic";
-
-function flattenValue(value: ComponentValue): string {
-  if (Array.isArray(value)) return value.join(" ");
-  if (value && typeof value === "object") {
-    return Object.values(value)
-      .flat()
-      .join(" ");
-  }
-  return "";
-}
 
 export default async function SearchPage({
   searchParams,
@@ -51,7 +41,7 @@ export default async function SearchPage({
         if (keyword === "") return true;
         const hay = [
           e.goal ?? "",
-          ...e.values.map((v) => flattenValue(v.value as ComponentValue)),
+          ...e.values.map((v) => valueToPlainText(v.value as ComponentValue)),
         ]
           .join(" ")
           .toLowerCase();

@@ -13,8 +13,8 @@ datasource db {
 
 enum ComponentType {
   FIXED_MESSAGE
-  BULLET_LIST
-  GROUPED_LIST
+  RICH_TEXT // Notion 風リッチテキスト（HTML 保存）
+  LABELED_TEXT // ラベルに 1:1 で紐づくリッチテキスト群（例: Good/Bad）
 }
 
 enum PeriodType {

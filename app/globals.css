@@ -8,3 +8,42 @@
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* TipTap リッチテキストエディタ */
+.tiptap:focus {
+  outline: none;
+}
+.tiptap p {
+  margin: 0.15rem 0;
+}
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.25rem;
+  margin: 0.15rem 0;
+}
+.tiptap ul {
+  list-style: disc;
+}
+.tiptap ol {
+  list-style: decimal;
+}
+.tiptap ul ul {
+  list-style: circle;
+}
+.tiptap ul ul ul {
+  list-style: square;
+}
+.tiptap li > p {
+  margin: 0;
+}
+.tiptap strong {
+  font-weight: 700;
+}
+/* Placeholder（空のとき） */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #52525b;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

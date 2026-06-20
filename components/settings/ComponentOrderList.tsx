@@ -9,8 +9,8 @@ export type OrderRow = { id: string; name: string; type: ComponentType };
 
 const TYPE_LABEL: Record<ComponentType, string> = {
   FIXED_MESSAGE: "固定メッセージ",
-  BULLET_LIST: "箇条書きリスト",
-  GROUPED_LIST: "グループ付きリスト",
+  RICH_TEXT: "リッチテキスト",
+  LABELED_TEXT: "ラベル付きフィールド",
 };
 
 /** コンポーネントの並び替え（マスタ定義は変更不可・順序のみ）。 */

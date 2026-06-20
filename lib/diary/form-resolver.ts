@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
 import { dateKeyToUtcDate } from "@/lib/date";
 import type {
-  BulletListConfig,
+  RichTextConfig,
   ComponentValue,
   FixedMessageOverrides,
-  GroupedListConfig,
+  LabeledTextConfig,
   ResolvedComponent,
   ResolvedForm,
 } from "./types";
@@ -61,7 +61,7 @@ export async function resolveFormForDate(
         key: component.key,
         name: component.name,
         type: component.type,
-        config: component.config as BulletListConfig | GroupedListConfig,
+        config: component.config as RichTextConfig | LabeledTextConfig,
         message:
           component.type === "FIXED_MESSAGE" ? overrides.message ?? "" : null,
         value: valueByComponent.get(component.id) ?? null,

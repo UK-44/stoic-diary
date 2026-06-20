@@ -23,10 +23,10 @@ type DefaultComponent = {
 
 const DEFAULT_COMPONENTS: DefaultComponent[] = [
   { key: "morning_message", name: "マイメッセージ（朝）", type: "FIXED_MESSAGE", config: {}, order: 10, message: "Keep simple. 余白をつくる。" },
-  { key: "today_thoughts", name: "今日にかける想い", type: "BULLET_LIST", config: {}, order: 20 },
-  { key: "memo", name: "メモ", type: "BULLET_LIST", config: {}, order: 30 },
-  { key: "good_bad_action", name: "今日の Good Action / Bad Action", type: "GROUPED_LIST", config: { groups: ["Good", "Bad"] }, order: 40 },
-  { key: "tomorrow_me", name: "明日の俺へ", type: "BULLET_LIST", config: {}, order: 50 },
+  { key: "today_thoughts", name: "今日にかける想い", type: "RICH_TEXT", config: {}, order: 20 },
+  { key: "memo", name: "メモ", type: "RICH_TEXT", config: {}, order: 30 },
+  { key: "good_bad_action", name: "今日の Good Action / Bad Action", type: "LABELED_TEXT", config: { groups: ["Good", "Bad"] }, order: 40 },
+  { key: "tomorrow_me", name: "明日の俺へ", type: "RICH_TEXT", config: {}, order: 50 },
   { key: "night_message", name: "マイメッセージ（夜）", type: "FIXED_MESSAGE", config: {}, order: 60, message: NIGHT_MESSAGE },
 ];
 
