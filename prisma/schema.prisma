@@ -18,52 +18,60 @@ enum ComponentType {
 }
 
 model User {
-  id        String       @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
-  email     String       @unique
-  name      String?
-  image     String?
-  entries   DiaryEntry[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id          String           @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
+  email       String           @unique
+  name        String?
+  image       String?
+  components  DiaryComponent[]
+  formVersions FormVersion[]
+  entries     DiaryEntry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model DiaryComponent {
   id         String            @id @default(cuid())
-  key        String            @unique
+  userId     String
+  key        String // ユーザーごとに自動採番（手入力しない）
   name       String
   type       ComponentType
   config     Json              @default("{}")
+  order      Int               @default(0) // ユーザーが自由に並び替えできる表示順
   archivedAt DateTime?
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   items      FormVersionItem[]
   values     DiaryEntryValue[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId, order])
 }
 
 model FormVersion {
   id            String            @id @default(cuid())
+  userId        String
   name          String
   effectiveFrom DateTime          @db.Date
   note          String?
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   items         FormVersionItem[]
   entries       DiaryEntry[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  @@index([effectiveFrom])
+  @@index([userId, effectiveFrom])
 }
 
 model FormVersionItem {
   id            String         @id @default(cuid())
   formVersionId String
   componentId   String
-  order         Int
   overrides     Json?
   formVersion   FormVersion    @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
-  component     DiaryComponent @relation(fields: [componentId], references: [id])
+  component     DiaryComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
 
   @@unique([formVersionId, componentId])
-  @@index([formVersionId, order])
 }
 
 model DiaryEntry {
@@ -89,7 +97,7 @@ model DiaryEntryValue {
   componentId String
   value       Json
   entry       DiaryEntry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  component   DiaryComponent @relation(fields: [componentId], references: [id])
+  component   DiaryComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
 
   @@unique([entryId, componentId])
 }

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createComponent,
+  moveComponent,
   setComponentArchived,
   updateComponent,
 } from "@/lib/admin/actions";
@@ -30,8 +31,7 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  // 新規作成フォームの状態
-  const [key, setKey] = useState("");
+  // 新規作成フォームの状態（key は自動採番のため入力しない）
   const [name, setName] = useState("");
   const [type, setType] = useState<ComponentType>("BULLET_LIST");
   const [placeholder, setPlaceholder] = useState("");
@@ -50,7 +50,6 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
     run(
       () =>
         createComponent({
-          key,
           name,
           type,
           placeholder: type === "BULLET_LIST" ? placeholder : undefined,
@@ -58,7 +57,6 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
         }),
       "作成しました",
     );
-    setKey("");
     setName("");
   }
 
@@ -67,12 +65,6 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
       <section className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
         <h2 className="text-sm font-semibold">コンポーネントを追加</h2>
         <div className="grid grid-cols-2 gap-2">
-          <input
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            placeholder="key（例: weekly_review）"
-            className={inputCls}
-          />
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -113,9 +105,16 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">一覧</h2>
-        {components.map((c) => (
-          <ComponentItem key={c.id} component={c} onRun={run} disabled={isPending} />
+        <h2 className="text-sm font-semibold">一覧（上から表示順。▲▼で並び替え）</h2>
+        {components.map((c, i) => (
+          <ComponentItem
+            key={c.id}
+            component={c}
+            isFirst={i === 0}
+            isLast={i === components.length - 1}
+            onRun={run}
+            disabled={isPending}
+          />
         ))}
       </section>
 
@@ -126,10 +125,14 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
 
 function ComponentItem({
   component,
+  isFirst,
+  isLast,
   onRun,
   disabled,
 }: {
   component: ComponentRow;
+  isFirst: boolean;
+  isLast: boolean;
   onRun: (fn: () => Promise<{ ok: boolean; error?: string }>, ok?: string) => void;
   disabled: boolean;
 }) {
@@ -141,14 +144,34 @@ function ComponentItem({
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex flex-col">
-          <span className={component.archived ? "text-zinc-500 line-through" : ""}>
-            {component.name}
-          </span>
-          <span className="text-xs text-zinc-500">
-            {component.key} · {TYPE_LABEL[component.type]}
-            {component.archived && " · アーカイブ済"}
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col">
+            <button
+              onClick={() => onRun(() => moveComponent(component.id, "up"))}
+              disabled={disabled || isFirst}
+              aria-label="上へ"
+              className="text-zinc-500 hover:text-zinc-100 disabled:opacity-30"
+            >
+              ▲
+            </button>
+            <button
+              onClick={() => onRun(() => moveComponent(component.id, "down"))}
+              disabled={disabled || isLast}
+              aria-label="下へ"
+              className="text-zinc-500 hover:text-zinc-100 disabled:opacity-30"
+            >
+              ▼
+            </button>
+          </div>
+          <div className="flex flex-col">
+            <span className={component.archived ? "text-zinc-500 line-through" : ""}>
+              {component.name}
+            </span>
+            <span className="text-xs text-zinc-500">
+              {TYPE_LABEL[component.type]}
+              {component.archived && " · アーカイブ済"}
+            </span>
+          </div>
         </div>
         <div className="flex gap-3 text-xs">
           <button onClick={() => setEditing((v) => !v)} className="text-zinc-400 hover:text-zinc-100">

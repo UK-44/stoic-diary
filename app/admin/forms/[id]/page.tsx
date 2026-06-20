@@ -16,24 +16,23 @@ export default async function FormVersionEditPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await params;
 
-  const version = await prisma.formVersion.findUnique({
-    where: { id },
+  const version = await prisma.formVersion.findFirst({
+    where: { id, userId: user.id },
     include: { items: true },
   });
   if (!version) notFound();
 
-  // 選択肢は未アーカイブのコンポーネント全件。
+  // 選択肢は自分の未アーカイブコンポーネント（表示順）。
   const components = await prisma.diaryComponent.findMany({
-    where: { archivedAt: null },
-    orderBy: { createdAt: "asc" },
+    where: { userId: user.id, archivedAt: null },
+    orderBy: { order: "asc" },
   });
 
   const editorComponents: EditorComponent[] = components.map((c) => ({
     id: c.id,
-    key: c.key,
     name: c.name,
     type: c.type,
   }));
@@ -41,7 +40,7 @@ export default async function FormVersionEditPage({
   const initialItems = Object.fromEntries(
     version.items.map((item) => {
       const overrides = (item.overrides ?? {}) as Partial<FixedMessageOverrides>;
-      return [item.componentId, { order: item.order, message: overrides.message ?? "" }];
+      return [item.componentId, { message: overrides.message ?? "" }];
     }),
   );
 

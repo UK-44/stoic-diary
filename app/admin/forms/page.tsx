@@ -9,8 +9,9 @@ import { dateToKey } from "@/lib/date";
 export const dynamic = "force-dynamic";
 
 export default async function FormsAdminPage() {
-  await requireUser();
+  const user = await requireUser();
   const versions = await prisma.formVersion.findMany({
+    where: { userId: user.id },
     orderBy: { effectiveFrom: "desc" },
     include: { _count: { select: { items: true } } },
   });

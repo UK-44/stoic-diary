@@ -9,9 +9,10 @@ import type { BulletListConfig, GroupedListConfig } from "@/lib/diary/types";
 export const dynamic = "force-dynamic";
 
 export default async function ComponentsAdminPage() {
-  await requireUser();
+  const user = await requireUser();
   const components = await prisma.diaryComponent.findMany({
-    orderBy: [{ archivedAt: "asc" }, { createdAt: "asc" }],
+    where: { userId: user.id },
+    orderBy: { order: "asc" },
   });
 
   const rows: ComponentRow[] = components.map((c) => {

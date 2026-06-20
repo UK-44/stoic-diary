@@ -25,12 +25,12 @@ export async function resolveFormForDate(
   const date = dateKeyToUtcDate(dateKey);
 
   const formVersion = preferFormVersionId
-    ? await prisma.formVersion.findUnique({
-        where: { id: preferFormVersionId },
+    ? await prisma.formVersion.findFirst({
+        where: { id: preferFormVersionId, userId },
         include: formVersionInclude,
       })
     : await prisma.formVersion.findFirst({
-        where: { effectiveFrom: { lte: date } },
+        where: { userId, effectiveFrom: { lte: date } },
         orderBy: { effectiveFrom: "desc" },
         include: formVersionInclude,
       });
@@ -49,6 +49,8 @@ export async function resolveFormForDate(
   const components: ResolvedComponent[] = formVersion.items
     // アーカイブ済みコンポーネントは描画しない。
     .filter((item) => item.component.archivedAt === null)
+    // 並び順はコンポーネント自身の order に従う（ユーザーが並び替え可能）。
+    .sort((a, b) => a.component.order - b.component.order)
     .map((item) => {
       const { component } = item;
       const overrides = (item.overrides ?? {}) as Partial<FixedMessageOverrides>;
@@ -73,7 +75,6 @@ export async function resolveFormForDate(
 
 const formVersionInclude = {
   items: {
-    orderBy: { order: "asc" as const },
     include: { component: true },
   },
 } as const;

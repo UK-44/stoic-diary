@@ -7,17 +7,11 @@ import type { ComponentType } from "@/lib/diary/types";
 
 export type EditorComponent = {
   id: string;
-  key: string;
   name: string;
   type: ComponentType;
 };
 
-export type EditorItem = {
-  componentId: string;
-  included: boolean;
-  order: number;
-  message: string;
-};
+type ItemState = { included: boolean; message: string };
 
 export function FormVersionEditor({
   formVersionId,
@@ -25,28 +19,27 @@ export function FormVersionEditor({
   initialItems,
 }: {
   formVersionId: string;
+  // components は表示順（コンポーネントの order 昇順）で渡される。
   components: EditorComponent[];
-  initialItems: Record<string, { order: number; message: string }>;
+  initialItems: Record<string, { message: string }>;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  const [items, setItems] = useState<Record<string, EditorItem>>(() => {
-    const map: Record<string, EditorItem> = {};
-    components.forEach((c, i) => {
+  const [items, setItems] = useState<Record<string, ItemState>>(() => {
+    const map: Record<string, ItemState> = {};
+    components.forEach((c) => {
       const existing = initialItems[c.id];
       map[c.id] = {
-        componentId: c.id,
         included: existing !== undefined,
-        order: existing?.order ?? (i + 1) * 10,
         message: existing?.message ?? "",
       };
     });
     return map;
   });
 
-  function patch(id: string, p: Partial<EditorItem>) {
+  function patch(id: string, p: Partial<ItemState>) {
     setItems((prev) => ({ ...prev, [id]: { ...prev[id], ...p } }));
   }
 
@@ -54,12 +47,7 @@ export function FormVersionEditor({
     setMessage(null);
     const payload = components
       .filter((c) => items[c.id].included)
-      .map((c) => ({
-        componentId: c.id,
-        order: items[c.id].order,
-        message: items[c.id].message,
-      }))
-      .sort((a, b) => a.order - b.order);
+      .map((c) => ({ componentId: c.id, message: items[c.id].message }));
 
     startTransition(async () => {
       const r = await saveFormVersionItems(formVersionId, payload);
@@ -68,19 +56,12 @@ export function FormVersionEditor({
     });
   }
 
-  // included を order 昇順、未選択を後ろに並べる
-  const sorted = [...components].sort((a, b) => {
-    const ai = items[a.id].included ? items[a.id].order : Infinity;
-    const bi = items[b.id].included ? items[b.id].order : Infinity;
-    return ai - bi;
-  });
-
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-zinc-500">
-        この版で使う項目にチェックを入れ、order で並び順を決めます（小さいほど上）。
+        この版で使う項目にチェックを入れます。並び順は「コンポーネント管理」での並び順に従います。
       </p>
-      {sorted.map((c) => {
+      {components.map((c) => {
         const it = items[c.id];
         return (
           <div
@@ -89,24 +70,14 @@ export function FormVersionEditor({
               it.included ? "border-zinc-700 bg-zinc-900" : "border-zinc-800 bg-zinc-900/30"
             }`}
           >
-            <div className="flex items-center gap-3">
+            <label className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={it.included}
                 onChange={(e) => patch(c.id, { included: e.target.checked })}
               />
               <span className="flex-1">{c.name}</span>
-              <span className="text-xs text-zinc-500">{c.key}</span>
-              <label className="flex items-center gap-1 text-xs text-zinc-500">
-                order
-                <input
-                  type="number"
-                  value={it.order}
-                  onChange={(e) => patch(c.id, { order: Number(e.target.value) })}
-                  className="w-16 rounded border border-zinc-800 bg-zinc-900 px-2 py-1 text-sm"
-                />
-              </label>
-            </div>
+            </label>
             {it.included && c.type === "FIXED_MESSAGE" && (
               <textarea
                 value={it.message}
