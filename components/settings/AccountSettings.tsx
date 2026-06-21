@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveLongTermGoal } from "@/lib/settings/actions";
-import { logout } from "@/app/login/actions";
 
 export function AccountSettings({
   email,
@@ -64,15 +63,6 @@ export function AccountSettings({
           {message && <span className="text-sm text-zinc-400">{message}</span>}
         </div>
       </div>
-
-      <form action={logout}>
-        <button
-          type="submit"
-          className="rounded border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-900"
-        >
-          ログアウト
-        </button>
-      </form>
     </div>
   );
 }
