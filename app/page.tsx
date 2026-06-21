@@ -51,18 +51,18 @@ export default async function Home({
       </header>
 
       {user.longTermGoal && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+        <div className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
               長期目標
             </span>
             {user.longTermGoalDate && (
-              <span className="text-[11px] text-zinc-500">
+              <span className="text-[11px] text-zinc-400">
                 〜 {dateToKey(user.longTermGoalDate)}
               </span>
             )}
           </div>
-          <p className="mt-1 whitespace-pre-line text-sm text-zinc-200">
+          <p className="mt-1 whitespace-pre-line text-sm font-medium text-zinc-50">
             {user.longTermGoal}
           </p>
         </div>

@@ -23,8 +23,8 @@ export function AppNav() {
 
   return (
     <>
-      {/* PC: 左サイドメニュー */}
-      <aside className="hidden md:flex md:w-56 md:shrink-0 md:flex-col md:gap-1 md:border-r md:border-zinc-800 md:p-4">
+      {/* PC: 左サイドメニュー（スクロールしても固定） */}
+      <aside className="hidden md:flex md:w-56 md:shrink-0 md:flex-col md:gap-1 md:self-start md:sticky md:top-0 md:h-screen md:overflow-y-auto md:border-r md:border-zinc-800 md:p-4">
         <div className="mb-6 px-3 text-xl font-bold tracking-tight">stoic diary</div>
         {ITEMS.map((it) => {
           const active = isActive(pathname, it.href);

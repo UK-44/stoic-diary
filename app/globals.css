@@ -11,16 +11,19 @@ body {
 
 /* TipTap リッチテキストエディタ（枠なし・本文として地続き） */
 .tiptap {
-  min-height: 1.9rem;
   font-size: 0.95rem;
-  line-height: 1.7;
+  line-height: 1.6;
   cursor: text;
 }
 .tiptap:focus {
   outline: none;
 }
 .tiptap p {
-  margin: 0.15rem 0;
+  margin: 0;
+}
+/* ブロック間だけ余白を付ける（先頭に余分な空行を作らない） */
+.tiptap > * + * {
+  margin-top: 0.35rem;
 }
 .tiptap ul,
 .tiptap ol {
