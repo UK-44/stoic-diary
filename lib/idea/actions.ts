@@ -19,12 +19,14 @@ function clampRating(n: number): number {
   return Math.min(5, Math.max(0, Math.round(n)));
 }
 
-export async function createIdea(input: IdeaInput): Promise<ActionResult> {
+export type CreateResult = { ok: true; id: string } | { ok: false; error: string };
+
+export async function createIdea(input: IdeaInput): Promise<CreateResult> {
   const user = await requireUser();
   const title = input.title.trim();
   if (title === "") return { ok: false, error: "見出しを入力してください" };
 
-  await prisma.idea.create({
+  const created = await prisma.idea.create({
     data: {
       userId: user.id,
       title,
@@ -34,7 +36,7 @@ export async function createIdea(input: IdeaInput): Promise<ActionResult> {
     },
   });
   revalidatePath("/idea");
-  return { ok: true };
+  return { ok: true, id: created.id };
 }
 
 export async function updateIdea(id: string, input: IdeaInput): Promise<ActionResult> {
