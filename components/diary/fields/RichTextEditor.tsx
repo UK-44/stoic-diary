@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
@@ -28,6 +28,8 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
   // handleKeyDown は useEditor の設定時点で固定されるため、最新の editor を
   // ref 経由で参照する（Tab のリスト階層操作で使う）。
   const editorRef = useRef<Editor | null>(null);
+  // スマホでフォーカス中だけキーボード上にリスト階層バーを出すための状態。
+  const [focused, setFocused] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false, // Next.js App Router の SSR でハイドレーション不整合を避ける
@@ -68,6 +70,8 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onFocus: () => setFocused(true),
+    onBlur: () => setFocused(false),
   });
   editorRef.current = editor;
 
@@ -117,7 +121,73 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
         </button>
       </BubbleMenu>
       <EditorContent editor={editor} />
+      {/* スマホ: フォーカス中だけキーボード直上にリスト階層バーを出す */}
+      {focused && <MobileListBar editor={editor} />}
     </>
+  );
+}
+
+/**
+ * スマホ向け：ソフトキーボードの直上に出すリスト階層バー（⇤ 上げる / ⇥ 下げる）。
+ * Tab が打てない端末用。visualViewport でキーボードの高さを検知して追従させる。
+ */
+function MobileListBar({ editor }: { editor: Editor }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      // キーボードが占める高さ（= レイアウト下端と表示領域下端の差）だけ持ち上げる。
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      if (ref.current) ref.current.style.transform = `translateY(-${offset}px)`;
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  // タップでキャレット（フォーカス）が外れないよう onMouseDown で preventDefault。
+  const run = (sink: boolean) => {
+    const chain = editor.chain().focus();
+    (sink ? chain.sinkListItem("listItem") : chain.liftListItem("listItem")).run();
+  };
+
+  return (
+    <div
+      ref={ref}
+      className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-zinc-700 bg-zinc-900 px-3 py-2 md:hidden"
+    >
+      <ListLevelBtn onClick={() => run(false)}>
+        <span aria-hidden>←</span>
+      </ListLevelBtn>
+      <ListLevelBtn onClick={() => run(true)}>
+        <span aria-hidden>→</span>
+      </ListLevelBtn>
+    </div>
+  );
+}
+
+function ListLevelBtn({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-700 text-sm text-zinc-200 transition-colors active:bg-zinc-800"
+    >
+      {children}
+    </button>
   );
 }
 
