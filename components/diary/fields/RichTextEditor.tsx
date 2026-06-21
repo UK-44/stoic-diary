@@ -32,7 +32,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
       StarterKit.configure({ trailingNode: false }),
       TextStyle,
       Color,
-      Placeholder.configure({ placeholder: placeholder ?? "Write something…" }),
+      Placeholder.configure({ placeholder: placeholder ?? "Write" }),
     ],
     content: value || "",
     editorProps: {
@@ -53,7 +53,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
   });
 
   if (!editor) {
-    return <div className="tiptap text-zinc-600">{placeholder ?? "Write something…"}</div>;
+    return <div className="tiptap text-zinc-600">{placeholder ?? "Write"}</div>;
   }
 
   // 装飾を適用したら選択を折りたたみ、バブルメニューを閉じる。
