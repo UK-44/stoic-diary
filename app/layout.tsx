@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { getCurrentUser } from "@/lib/auth";
@@ -17,6 +17,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Stoic Diary",
   description: "Notion から移行した自分専用の日記アプリ",
+};
+
+// スマホで表示倍率を 100% 固定にし、入力フォーム（input/textarea/contenteditable）に
+// フォーカスしても iOS が自動ズームしないようにする。
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default async function RootLayout({
