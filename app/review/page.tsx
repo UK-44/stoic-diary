@@ -20,7 +20,7 @@ import type { PeriodType } from "@/lib/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
 
-const RATING_LABELS = ["", "悪い", "悪くない", "良い", "素晴らしい"];
+const RATING_LABELS = ["", "悪い", "悪くない", "良い", "最高"];
 
 export default async function ReviewPage({
   searchParams,

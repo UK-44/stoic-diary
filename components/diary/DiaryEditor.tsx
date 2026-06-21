@@ -24,7 +24,7 @@ type Props = {
   existing: boolean;
 };
 
-const RATING_LABELS = ["", "悪い", "悪くない", "良い", "素晴らしい"];
+const RATING_LABELS = ["", "悪い", "悪くない", "良い", "最高"];
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function DiaryEditor({ dateKey, form, initialRating, existing }: Props) {

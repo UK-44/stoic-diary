@@ -45,6 +45,11 @@ export default async function Home({
 
   return (
     <div className="flex flex-col gap-8">
+      <header className="flex flex-col gap-4">
+        <h1 className="text-center text-xl font-bold tracking-tight">{prettyDate(selected)}</h1>
+        <WeekStrip selectedKey={selected} todayKey={today} entryDates={entryDates} />
+      </header>
+
       {user.longTermGoal && (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3">
           <div className="flex items-center justify-between">
@@ -62,11 +67,6 @@ export default async function Home({
           </p>
         </div>
       )}
-
-      <header className="flex flex-col gap-4">
-        <h1 className="text-center text-xl font-bold tracking-tight">{prettyDate(selected)}</h1>
-        <WeekStrip selectedKey={selected} todayKey={today} entryDates={entryDates} />
-      </header>
 
       <DiaryEditor
         key={selected}
