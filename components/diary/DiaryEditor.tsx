@@ -142,7 +142,7 @@ function SaveIndicator({ status }: { status: SaveStatus }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
         {label}
       </h2>
       {children}

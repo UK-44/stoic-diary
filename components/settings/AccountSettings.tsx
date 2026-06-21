@@ -33,7 +33,7 @@ export function AccountSettings({
       <div className="text-sm text-zinc-400">{email}</div>
 
       <div className="flex flex-col gap-2">
-        <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
           長期目標
         </label>
         <textarea

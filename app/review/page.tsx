@@ -131,7 +131,7 @@ export default async function ReviewPage({
 
       {/* 期間内の日記一覧 */}
       <section className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
           この期間の日記
         </h2>
         {entries.length === 0 ? (

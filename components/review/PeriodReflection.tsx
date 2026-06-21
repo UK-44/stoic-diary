@@ -79,7 +79,7 @@ export function PeriodReflection({
 function Block({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</label>
+      <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{label}</label>
       {children}
     </div>
   );
