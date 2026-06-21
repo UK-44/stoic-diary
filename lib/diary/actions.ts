@@ -8,7 +8,6 @@ import type { ComponentValue } from "./types";
 
 export type SaveDiaryInput = {
   dateKey: string;
-  goal: string;
   rating: number | null;
   values: { componentId: string; value: ComponentValue }[];
 };
@@ -31,14 +30,13 @@ export async function saveDiaryEntry(
   }
 
   const date = dateKeyToUtcDate(input.dateKey);
-  const goal = input.goal.trim() === "" ? null : input.goal.trim();
 
   try {
     await prisma.$transaction(async (tx) => {
       const entry = await tx.diaryEntry.upsert({
         where: { userId_date: { userId: user.id, date } },
-        update: { goal, rating: input.rating },
-        create: { userId: user.id, date, goal, rating: input.rating },
+        update: { rating: input.rating },
+        create: { userId: user.id, date, rating: input.rating },
       });
 
       for (const { componentId, value } of input.values) {

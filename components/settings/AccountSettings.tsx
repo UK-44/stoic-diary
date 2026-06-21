@@ -8,19 +8,22 @@ import { logout } from "@/app/login/actions";
 export function AccountSettings({
   email,
   initialGoal,
+  initialGoalDate,
 }: {
   email: string;
   initialGoal: string;
+  initialGoalDate: string;
 }) {
   const router = useRouter();
   const [goal, setGoal] = useState(initialGoal);
+  const [goalDate, setGoalDate] = useState(initialGoalDate);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
   function handleSave() {
     setMessage(null);
     startTransition(async () => {
-      const r = await saveLongTermGoal(goal);
+      const r = await saveLongTermGoal(goal, goalDate);
       setMessage(r.ok ? "保存しました" : r.error);
       if (r.ok) router.refresh();
     });
@@ -41,6 +44,15 @@ export function AccountSettings({
           placeholder="長い目で目指したいこと（日々の目標とは別）"
           className="w-full rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-zinc-500"
         />
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-500">対象日</span>
+          <input
+            type="date"
+            value={goalDate}
+            onChange={(e) => setGoalDate(e.target.value)}
+            className="rounded border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-zinc-500"
+          />
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={handleSave}

@@ -88,6 +88,15 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
+/** エントリの値リストから、一覧表示用のプレビュー（最初の非空テキスト）を作る。 */
+export function previewFromValues(values: { value: unknown }[]): string {
+  for (const v of values) {
+    const t = valueToPlainText(v.value as ComponentValue);
+    if (t) return t;
+  }
+  return "";
+}
+
 /** リッチテキスト/ラベル付きの値から、検索用のプレーンテキストを取り出す。 */
 export function valueToPlainText(value: ComponentValue): string {
   const html = typeof value === "string" ? value : Object.values(value).join(" ");

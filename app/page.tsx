@@ -36,7 +36,7 @@ export default async function Home({
           lte: dateKeyToUtcDate(week[6]),
         },
       },
-      select: { date: true, goal: true, rating: true },
+      select: { date: true, rating: true },
     }),
     resolveFormForDate(selected, user.id),
   ]);
@@ -45,6 +45,24 @@ export default async function Home({
 
   return (
     <div className="flex flex-col gap-8">
+      {user.longTermGoal && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+              長期目標
+            </span>
+            {user.longTermGoalDate && (
+              <span className="text-[11px] text-zinc-500">
+                〜 {dateToKey(user.longTermGoalDate)}
+              </span>
+            )}
+          </div>
+          <p className="mt-1 whitespace-pre-line text-sm text-zinc-200">
+            {user.longTermGoal}
+          </p>
+        </div>
+      )}
+
       <header className="flex flex-col gap-4">
         <h1 className="text-center text-xl font-bold tracking-tight">{prettyDate(selected)}</h1>
         <WeekStrip selectedKey={selected} todayKey={today} entryDates={entryDates} />
@@ -54,7 +72,6 @@ export default async function Home({
         key={selected}
         dateKey={selected}
         form={form}
-        initialGoal={selectedEntry?.goal ?? ""}
         initialRating={selectedEntry?.rating ?? null}
         existing={selectedEntry !== null}
       />

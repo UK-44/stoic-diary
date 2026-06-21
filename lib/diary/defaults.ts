@@ -21,6 +21,7 @@ type DefaultComponent = {
 };
 
 const DEFAULT_COMPONENTS: DefaultComponent[] = [
+  { key: "daily_goal", name: "今日の目標", type: "RICH_TEXT", config: {}, order: 5 },
   { key: "morning_message", name: "マイメッセージ（朝）", type: "FIXED_MESSAGE", config: { message: "Keep simple. 余白をつくる。" }, order: 10 },
   { key: "today_thoughts", name: "今日にかける想い", type: "RICH_TEXT", config: {}, order: 20 },
   { key: "memo", name: "メモ", type: "RICH_TEXT", config: {}, order: 30 },

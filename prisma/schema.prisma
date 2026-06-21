@@ -27,8 +27,9 @@ model User {
   email        String          @unique
   name         String?
   image        String?
-  longTermGoal String? // 日々の目標とは別の、長期目標（プロフィール的設定）
-  components    DiaryComponent[]
+  longTermGoal     String? // 日々の目標とは別の、長期目標（プロフィール的設定）
+  longTermGoalDate DateTime? @db.Date // 長期目標の対象日（任意）
+  components       DiaryComponent[]
   entries       DiaryEntry[]
   periodReviews PeriodReview[]
   createdAt     DateTime         @default(now())
@@ -71,7 +72,6 @@ model DiaryEntry {
   id        String            @id @default(cuid())
   userId    String
   date      DateTime          @db.Date
-  goal      String?
   rating    Int?
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   values    DiaryEntryValue[]

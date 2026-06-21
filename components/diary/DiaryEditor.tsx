@@ -19,7 +19,6 @@ import { FixedMessage } from "./fields/FixedMessage";
 type Props = {
   dateKey: string;
   form: ResolvedForm;
-  initialGoal: string;
   initialRating: number | null;
   /** その日に既にエントリがあるか（未記入なら「日記を書く」から開始） */
   existing: boolean;
@@ -28,9 +27,8 @@ type Props = {
 const RATING_LABELS = ["", "悪い", "悪くない", "良い", "素晴らしい"];
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-export function DiaryEditor({ dateKey, form, initialGoal, initialRating, existing }: Props) {
+export function DiaryEditor({ dateKey, form, initialRating, existing }: Props) {
   const [started, setStarted] = useState(existing);
-  const [goal, setGoal] = useState(initialGoal);
   const [rating, setRating] = useState<number | null>(initialRating);
   const [values, setValues] = useState<Record<string, ComponentValue>>(() =>
     initValues(form.components),
@@ -49,14 +47,14 @@ export function DiaryEditor({ dateKey, form, initialGoal, initialRating, existin
       if (timer.current) clearTimeout(timer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [goal, rating, values]);
+  }, [rating, values]);
 
   async function save() {
     setStatus("saving");
     const payload = form.components
       .filter((c) => c.type !== "FIXED_MESSAGE")
       .map((c) => ({ componentId: c.componentId, value: values[c.componentId] }));
-    const r = await saveDiaryEntry({ dateKey, goal, rating, values: payload });
+    const r = await saveDiaryEntry({ dateKey, rating, values: payload });
     setStatus(r.ok ? "saved" : "error");
     // 注: 週ストリップの記入済みドットは次回ナビゲーション時に反映される
     // （保存ごとに router.refresh() で全再描画すると重いため行わない）。
@@ -91,20 +89,6 @@ export function DiaryEditor({ dateKey, form, initialGoal, initialRating, existin
 
   return (
     <div className="flex flex-col gap-8">
-      {/* コア: 目標（インライン） */}
-      <Field label="目標">
-        <input
-          type="text"
-          value={goal}
-          onChange={(e) => {
-            markDirty();
-            setGoal(e.target.value);
-          }}
-          placeholder="今日の目標を書く…"
-          className="w-full border-none bg-transparent text-base outline-none placeholder:text-zinc-600"
-        />
-      </Field>
-
       {/* コア: 総合評価（4 段階） */}
       <Field label="総合評価">
         <div className="flex gap-2">

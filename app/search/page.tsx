@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { dateToKey } from "@/lib/date";
-import { valueToPlainText, type ComponentValue } from "@/lib/diary/types";
+import { previewFromValues, valueToPlainText, type ComponentValue } from "@/lib/diary/types";
 
 export const dynamic = "force-dynamic";
 
@@ -39,10 +39,8 @@ export default async function SearchPage({
         })
       ).filter((e) => {
         if (keyword === "") return true;
-        const hay = [
-          e.goal ?? "",
-          ...e.values.map((v) => valueToPlainText(v.value as ComponentValue)),
-        ]
+        const hay = e.values
+          .map((v) => valueToPlainText(v.value as ComponentValue))
           .join(" ")
           .toLowerCase();
         return hay.includes(keyword);
@@ -93,7 +91,7 @@ export default async function SearchPage({
               <li key={key}>
                 <Link href={`/?d=${key}`} className="flex flex-col gap-1 px-4 py-3 hover:bg-zinc-900">
                   <span className="font-mono text-sm">{key}</span>
-                  {e.goal && <span className="truncate text-sm text-zinc-400">{e.goal}</span>}
+                  <span className="truncate text-sm text-zinc-400">{previewFromValues(e.values)}</span>
                 </Link>
               </li>
             );

@@ -15,6 +15,7 @@ import {
 } from "@/lib/date";
 import { RatingTrend } from "@/components/review/RatingTrend";
 import { PeriodReflection } from "@/components/review/PeriodReflection";
+import { previewFromValues } from "@/lib/diary/types";
 import type { PeriodType } from "@/lib/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export default async function ReviewPage({
       date: { gte: dateKeyToUtcDate(from), lte: dateKeyToUtcDate(to) },
     },
     orderBy: { date: "desc" },
-    select: { date: true, goal: true, rating: true },
+    select: { date: true, rating: true, values: { select: { value: true } } },
   });
 
   const ratingByDay = new Map(
@@ -145,7 +146,9 @@ export default async function ReviewPage({
                     className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-zinc-900"
                   >
                     <span className="font-mono text-sm">{key}</span>
-                    <span className="flex-1 truncate text-sm text-zinc-400">{e.goal ?? ""}</span>
+                    <span className="flex-1 truncate text-sm text-zinc-400">
+                      {previewFromValues(e.values)}
+                    </span>
                     {e.rating != null && (
                       <span className="shrink-0 rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
                         {RATING_LABELS[e.rating]}

@@ -22,13 +22,13 @@ export type ComponentRow = {
 
 // テンプレ（種類）は固定。名前と並び順・取捨はユーザーが決める。
 const TEMPLATES: { type: ComponentType; label: string; hint: string }[] = [
-  { type: "RICH_TEXT", label: "リッチテキスト", hint: "自由記述（箇条書き・太字など）" },
-  { type: "LABELED_TEXT", label: "ラベル付きフィールド", hint: "見出しに紐づく入力（例: Good / Bad）" },
+  { type: "RICH_TEXT", label: "フリー", hint: "自由記述（箇条書き・太字など）" },
+  { type: "LABELED_TEXT", label: "ラベル付き", hint: "見出しに紐づく入力（例: Good / Bad）" },
   { type: "FIXED_MESSAGE", label: "固定メッセージ", hint: "毎日表示する自分宛のメッセージ" },
 ];
 const TYPE_LABEL: Record<ComponentType, string> = {
-  RICH_TEXT: "リッチテキスト",
-  LABELED_TEXT: "ラベル付きフィールド",
+  RICH_TEXT: "フリー",
+  LABELED_TEXT: "ラベル付き",
   FIXED_MESSAGE: "固定メッセージ",
 };
 

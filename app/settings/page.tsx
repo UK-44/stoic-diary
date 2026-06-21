@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
+import { dateToKey } from "@/lib/date";
 import { AccountSettings } from "@/components/settings/AccountSettings";
 import {
   ComponentManager,
@@ -40,7 +41,11 @@ export default async function SettingsPage() {
       <h1 className="text-xl font-bold tracking-tight">Settings</h1>
 
       <Section title="アカウント">
-        <AccountSettings email={user.email} initialGoal={user.longTermGoal ?? ""} />
+        <AccountSettings
+          email={user.email}
+          initialGoal={user.longTermGoal ?? ""}
+          initialGoalDate={user.longTermGoalDate ? dateToKey(user.longTermGoalDate) : ""}
+        />
       </Section>
 
       <Section

@@ -4,18 +4,27 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { dateKeyToUtcDate, isDateKey } from "@/lib/date";
 import type { ComponentType } from "@/lib/diary/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 // ---------- アカウント ----------
 
-/** 長期目標（プロフィール的設定）を保存する。 */
-export async function saveLongTermGoal(goal: string): Promise<ActionResult> {
+/** 長期目標（テキスト＋対象日）を保存する。 */
+export async function saveLongTermGoal(
+  goal: string,
+  date: string,
+): Promise<ActionResult> {
   const user = await requireUser();
   const value = goal.trim() === "" ? null : goal.trim();
-  await prisma.user.update({ where: { id: user.id }, data: { longTermGoal: value } });
+  const goalDate = date && isDateKey(date) ? dateKeyToUtcDate(date) : null;
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { longTermGoal: value, longTermGoalDate: goalDate },
+  });
   revalidatePath("/settings");
+  revalidatePath("/");
   return { ok: true };
 }
 
