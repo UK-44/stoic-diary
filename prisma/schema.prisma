@@ -1,29 +1,118 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Stoic Diary - データモデル
+// 仕様: docs/spec/02-domain-model.md
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
+  // Prisma 7: 接続 URL は prisma.config.ts の datasource / 実行時は PrismaClient の adapter で指定
   provider = "postgresql"
 }
 
-model User {
- id    Int     @id @default(autoincrement())
- email String  @unique
- name  String?
- posts Post[]
+enum ComponentType {
+  FIXED_MESSAGE
+  RICH_TEXT // Notion 風リッチテキスト（HTML 保存）
+  LABELED_TEXT // ラベルに 1:1 で紐づくリッチテキスト群（例: Good/Bad）
 }
 
-model Post {
- id        Int     @id @default(autoincrement())
- title     String
- content   String?
- published Boolean @default(false)
- author    User    @relation(fields: [authorId], references: [id])
- authorId  Int
+enum PeriodType {
+  WEEK
+  MONTH
+}
+
+enum IdeaLabel {
+  FAMILY
+  WORK
+  MAN
+}
+
+model User {
+  id           String          @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
+  email        String          @unique
+  name         String?
+  image        String?
+  longTermGoal     String? // 日々の目標とは別の、長期目標（プロフィール的設定）
+  longTermGoalDate DateTime? @db.Date // 長期目標の対象日（任意）
+  components       DiaryComponent[]
+  entries       DiaryEntry[]
+  periodReviews PeriodReview[]
+  ideas         Idea[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model PeriodReview {
+  id           String     @id @default(cuid())
+  userId       String
+  periodType   PeriodType
+  periodStart  DateTime   @db.Date // 週=日曜始まり / 月=1日
+  goal         String? // 週間/月間の目標
+  wentWell     String? // うまくできたこと
+  couldImprove String? // もっと改善できたこと
+  nextActions  String? // 次のサイクルで取り組むこと
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([userId, periodType, periodStart])
+  @@index([userId, periodType, periodStart])
+}
+
+model Idea {
+  id        String     @id @default(cuid())
+  userId    String
+  title     String
+  content   String? // 自由記述（markdown/HTML）
+  rating    Int        @default(0) // 星評価 1..5（0=未評価）
+  label     IdeaLabel?
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+model DiaryComponent {
+  id         String            @id @default(cuid())
+  userId     String
+  key        String // ユーザーごとに自動採番（手入力しない）
+  name       String
+  type       ComponentType
+  config     Json              @default("{}")
+  order      Int               @default(0) // ユーザーが自由に並び替えできる表示順
+  archivedAt DateTime?
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  values     DiaryEntryValue[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@unique([userId, key])
+  @@index([userId, order])
+}
+
+model DiaryEntry {
+  id        String            @id @default(cuid())
+  userId    String
+  date      DateTime          @db.Date
+  rating    Int?
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  values    DiaryEntryValue[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model DiaryEntryValue {
+  id          String         @id @default(cuid())
+  entryId     String
+  componentId String
+  value       Json
+  entry       DiaryEntry     @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  component   DiaryComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, componentId])
 }
