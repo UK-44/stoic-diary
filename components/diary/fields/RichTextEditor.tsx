@@ -54,16 +54,24 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
     return <div className="tiptap text-zinc-600">{placeholder ?? "何か書く…"}</div>;
   }
 
+  // 装飾を適用したら選択を折りたたみ、バブルメニューを閉じる。
+  const apply = (
+    build: (c: ReturnType<Editor["chain"]>) => ReturnType<Editor["chain"]>,
+  ) => {
+    const to = editor.state.selection.to;
+    build(editor.chain().focus()).setTextSelection(to).run();
+  };
+
   return (
     <>
       <BubbleMenu
         editor={editor}
         className="flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-900 p-1.5 shadow-xl"
       >
-        <MarkBtn active={editor.isActive("bold")} title="太字 (⌘B)" onClick={() => editor.chain().focus().toggleBold().run()}>
+        <MarkBtn active={editor.isActive("bold")} title="太字 (⌘B)" onClick={() => apply((c) => c.toggleBold())}>
           <span className="font-bold">B</span>
         </MarkBtn>
-        <MarkBtn active={editor.isActive("underline")} title="下線 (⌘U)" onClick={() => editor.chain().focus().toggleUnderline().run()}>
+        <MarkBtn active={editor.isActive("underline")} title="下線 (⌘U)" onClick={() => apply((c) => c.toggleUnderline())}>
           <span className="underline">U</span>
         </MarkBtn>
         <span className="mx-0.5 h-7 w-px bg-zinc-700" />
@@ -72,7 +80,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
             key={c}
             type="button"
             title="文字色"
-            onClick={() => editor.chain().focus().setColor(c).run()}
+            onClick={() => apply((chain) => chain.setColor(c))}
             className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-zinc-800"
           >
             <span className="h-5 w-5 rounded-full border border-zinc-600" style={{ backgroundColor: c }} />
@@ -81,7 +89,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
         <button
           type="button"
           title="色をリセット"
-          onClick={() => editor.chain().focus().unsetColor().run()}
+          onClick={() => apply((c) => c.unsetColor())}
           className="flex h-9 w-9 items-center justify-center rounded-lg text-base text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
         >
           ✕
