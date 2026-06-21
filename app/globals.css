@@ -9,6 +9,18 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+/* 日記の日付切替スライド（新しい日付＝右から / 古い日付＝左から） */
+@keyframes diarySlideInRight {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes diarySlideInLeft {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: none; }
+}
+.slide-in-right { animation: diarySlideInRight 0.22s ease-out; }
+.slide-in-left { animation: diarySlideInLeft 0.22s ease-out; }
+
 /* TipTap リッチテキストエディタ（枠なし・本文として地続き） */
 .tiptap {
   font-size: 0.95rem;

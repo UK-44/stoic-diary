@@ -12,6 +12,7 @@ import {
 import { resolveFormForDate } from "@/lib/diary/form-resolver";
 import { WeekStrip } from "@/components/diary/WeekStrip";
 import { DiaryEditor } from "@/components/diary/DiaryEditor";
+import { DiaryPane } from "@/components/diary/DiaryPane";
 
 export const dynamic = "force-dynamic";
 
@@ -25,23 +26,16 @@ export default async function Home({
   const today = todayKey();
   const selected = d && isDateKey(d) ? d : today;
 
-  // 週の記入状況とフォーム解決は独立なので並列取得する。
-  const week = weekKeys(selected);
-  const [weekEntries, form] = await Promise.all([
-    prisma.diaryEntry.findMany({
-      where: {
-        userId: user.id,
-        date: {
-          gte: dateKeyToUtcDate(week[0]),
-          lte: dateKeyToUtcDate(week[6]),
-        },
-      },
-      select: { date: true, rating: true },
+  // 記入済み日（ストリップ用・全期間の日付のみ）、選択日のエントリ、フォームを並列取得。
+  const [allEntries, selectedEntry, form] = await Promise.all([
+    prisma.diaryEntry.findMany({ where: { userId: user.id }, select: { date: true } }),
+    prisma.diaryEntry.findUnique({
+      where: { userId_date: { userId: user.id, date: dateKeyToUtcDate(selected) } },
+      select: { rating: true },
     }),
     resolveFormForDate(selected, user.id),
   ]);
-  const entryDates = new Set(weekEntries.map((e) => dateToKey(e.date)));
-  const selectedEntry = weekEntries.find((e) => dateToKey(e.date) === selected) ?? null;
+  const entryDates = allEntries.map((e) => dateToKey(e.date));
 
   return (
     <div className="flex flex-col gap-8">
@@ -68,13 +62,14 @@ export default async function Home({
         </div>
       )}
 
-      <DiaryEditor
-        key={selected}
-        dateKey={selected}
-        form={form}
-        initialRating={selectedEntry?.rating ?? null}
-        existing={selectedEntry !== null}
-      />
+      <DiaryPane dateKey={selected}>
+        <DiaryEditor
+          dateKey={selected}
+          form={form}
+          initialRating={selectedEntry?.rating ?? null}
+          existing={selectedEntry !== null}
+        />
+      </DiaryPane>
     </div>
   );
 }
