@@ -27,7 +27,9 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
   const editor = useEditor({
     immediatelyRender: false, // Next.js App Router の SSR でハイドレーション不整合を避ける
     extensions: [
-      StarterKit,
+      // trailingNode: 末尾に常に空段落を強制する拡張。リスト後に消せない空行が
+      // 残るため無効化する。
+      StarterKit.configure({ trailingNode: false }),
       TextStyle,
       Color,
       Placeholder.configure({ placeholder: placeholder ?? "Write something…" }),
