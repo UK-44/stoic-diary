@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
@@ -24,6 +25,10 @@ type Props = {
  * 保存形式は HTML 文字列。
  */
 export function RichTextEditor({ value, placeholder, onChange }: Props) {
+  // handleKeyDown は useEditor の設定時点で固定されるため、最新の editor を
+  // ref 経由で参照する（Tab のリスト階層操作で使う）。
+  const editorRef = useRef<Editor | null>(null);
+
   const editor = useEditor({
     immediatelyRender: false, // Next.js App Router の SSR でハイドレーション不整合を避ける
     extensions: [
@@ -46,11 +51,25 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
           );
           return true;
         }
+        // Tab はリスト階層の上げ下げに使い、フォーカスがフォーム外へ逃げないよう
+        // 常に消費する（先頭項目など階層を変えられない位置でも次の入力へ移動しない）。
+        if (event.key === "Tab") {
+          const ed = editorRef.current;
+          if (ed) {
+            const chain = ed.chain().focus();
+            (event.shiftKey
+              ? chain.liftListItem("listItem")
+              : chain.sinkListItem("listItem")
+            ).run();
+          }
+          return true;
+        }
         return false;
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
+  editorRef.current = editor;
 
   if (!editor) {
     return <div className="tiptap text-zinc-600">{placeholder ?? "Write"}</div>;
