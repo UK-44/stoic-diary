@@ -3,80 +3,56 @@ import { dateKeyToUtcDate } from "@/lib/date";
 import type {
   RichTextConfig,
   ComponentValue,
-  FixedMessageOverrides,
+  FixedMessageConfig,
   LabeledTextConfig,
   ResolvedComponent,
   ResolvedForm,
 } from "./types";
 
 /**
- * 対象日付に有効な FormVersion（effectiveFrom <= date の最新）を解決する。
- * 既存エントリがあれば各コンポーネントの入力値もマージする。
- *
- * @param dateKey YYYY-MM-DD
- * @param userId  入力値を引き当てる所有者
- * @param preferFormVersionId 過去エントリ閲覧時に、保存時の版を優先したい場合に指定
+ * 対象日付の日記フォームを解決する。
+ * フォーム＝ユーザーの「項目一覧」（未アーカイブのコンポーネントを order 順）。
+ * 既存エントリがあれば各コンポーネントの入力値をマージする。
  */
 export async function resolveFormForDate(
   dateKey: string,
   userId: string,
-  preferFormVersionId?: string | null,
-): Promise<ResolvedForm | null> {
+): Promise<ResolvedForm> {
   const date = dateKeyToUtcDate(dateKey);
 
-  // フォーム版と既存エントリは互いに独立なので並列に取得する（往復を 1 波にまとめる）。
-  const [formVersion, entry] = await Promise.all([
-    preferFormVersionId
-      ? prisma.formVersion.findFirst({
-          where: { id: preferFormVersionId, userId },
-          include: formVersionInclude,
-        })
-      : prisma.formVersion.findFirst({
-          where: { userId, effectiveFrom: { lte: date } },
-          orderBy: { effectiveFrom: "desc" },
-          include: formVersionInclude,
-        }),
+  const [components, entry] = await Promise.all([
+    prisma.diaryComponent.findMany({
+      where: { userId, archivedAt: null },
+      orderBy: { order: "asc" },
+    }),
     prisma.diaryEntry.findUnique({
       where: { userId_date: { userId, date } },
       include: { values: true },
     }),
   ]);
 
-  if (!formVersion) return null;
-
   const valueByComponent = new Map<string, ComponentValue>(
     entry?.values.map((v) => [v.componentId, v.value as ComponentValue]) ?? [],
   );
 
-  const components: ResolvedComponent[] = formVersion.items
-    // アーカイブ済みコンポーネントは描画しない。
-    .filter((item) => item.component.archivedAt === null)
-    // 並び順はコンポーネント自身の order に従う（ユーザーが並び替え可能）。
-    .sort((a, b) => a.component.order - b.component.order)
-    .map((item) => {
-      const { component } = item;
-      const overrides = (item.overrides ?? {}) as Partial<FixedMessageOverrides>;
-      return {
-        componentId: component.id,
-        key: component.key,
-        name: component.name,
-        type: component.type,
-        config: component.config as RichTextConfig | LabeledTextConfig,
-        message:
-          component.type === "FIXED_MESSAGE" ? overrides.message ?? "" : null,
-        value: valueByComponent.get(component.id) ?? null,
-      };
-    });
+  const resolved: ResolvedComponent[] = components.map((c) => {
+    const config = (c.config ?? {}) as
+      | RichTextConfig
+      | LabeledTextConfig
+      | FixedMessageConfig;
+    return {
+      componentId: c.id,
+      key: c.key,
+      name: c.name,
+      type: c.type,
+      config,
+      message:
+        c.type === "FIXED_MESSAGE"
+          ? (config as FixedMessageConfig).message ?? ""
+          : null,
+      value: valueByComponent.get(c.id) ?? null,
+    };
+  });
 
-  return {
-    formVersionId: formVersion.id,
-    formVersionName: formVersion.name,
-    components,
-  };
+  return { components: resolved };
 }
-
-const formVersionInclude = {
-  items: {
-    include: { component: true },
-  },
-} as const;

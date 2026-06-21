@@ -56,13 +56,7 @@ export function DiaryEditor({ dateKey, form, initialGoal, initialRating, existin
     const payload = form.components
       .filter((c) => c.type !== "FIXED_MESSAGE")
       .map((c) => ({ componentId: c.componentId, value: values[c.componentId] }));
-    const r = await saveDiaryEntry({
-      dateKey,
-      formVersionId: form.formVersionId,
-      goal,
-      rating,
-      values: payload,
-    });
+    const r = await saveDiaryEntry({ dateKey, goal, rating, values: payload });
     setStatus(r.ok ? "saved" : "error");
     // 注: 週ストリップの記入済みドットは次回ナビゲーション時に反映される
     // （保存ごとに router.refresh() で全再描画すると重いため行わない）。

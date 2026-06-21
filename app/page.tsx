@@ -36,7 +36,7 @@ export default async function Home({
           lte: dateKeyToUtcDate(week[6]),
         },
       },
-      select: { date: true, goal: true, rating: true, formVersionId: true },
+      select: { date: true, goal: true, rating: true },
     }),
     resolveFormForDate(selected, user.id),
   ]);
@@ -50,20 +50,14 @@ export default async function Home({
         <WeekStrip selectedKey={selected} todayKey={today} entryDates={entryDates} />
       </header>
 
-      {form ? (
-        <DiaryEditor
-          key={selected}
-          dateKey={selected}
-          form={form}
-          initialGoal={selectedEntry?.goal ?? ""}
-          initialRating={selectedEntry?.rating ?? null}
-          existing={selectedEntry !== null}
-        />
-      ) : (
-        <p className="py-16 text-center text-sm text-zinc-500">
-          適用できるフォーム構成がありません。Settings で構成を確認してください。
-        </p>
-      )}
+      <DiaryEditor
+        key={selected}
+        dateKey={selected}
+        form={form}
+        initialGoal={selectedEntry?.goal ?? ""}
+        initialRating={selectedEntry?.rating ?? null}
+        existing={selectedEntry !== null}
+      />
     </div>
   );
 }

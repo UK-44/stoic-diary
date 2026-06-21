@@ -29,7 +29,6 @@ model User {
   image        String?
   longTermGoal String? // 日々の目標とは別の、長期目標（プロフィール的設定）
   components    DiaryComponent[]
-  formVersions  FormVersion[]
   entries       DiaryEntry[]
   periodReviews PeriodReview[]
   createdAt     DateTime         @default(now())
@@ -60,7 +59,6 @@ model DiaryComponent {
   order      Int               @default(0) // ユーザーが自由に並び替えできる表示順
   archivedAt DateTime?
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items      FormVersionItem[]
   values     DiaryEntryValue[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
@@ -69,44 +67,16 @@ model DiaryComponent {
   @@index([userId, order])
 }
 
-model FormVersion {
-  id            String            @id @default(cuid())
-  userId        String
-  name          String
-  effectiveFrom DateTime          @db.Date
-  note          String?
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items         FormVersionItem[]
-  entries       DiaryEntry[]
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-
-  @@index([userId, effectiveFrom])
-}
-
-model FormVersionItem {
-  id            String         @id @default(cuid())
-  formVersionId String
-  componentId   String
-  overrides     Json?
-  formVersion   FormVersion    @relation(fields: [formVersionId], references: [id], onDelete: Cascade)
-  component     DiaryComponent @relation(fields: [componentId], references: [id], onDelete: Cascade)
-
-  @@unique([formVersionId, componentId])
-}
-
 model DiaryEntry {
-  id            String            @id @default(cuid())
-  userId        String
-  date          DateTime          @db.Date
-  goal          String?
-  rating        Int?
-  formVersionId String?
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  formVersion   FormVersion?      @relation(fields: [formVersionId], references: [id])
-  values        DiaryEntryValue[]
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  id        String            @id @default(cuid())
+  userId    String
+  date      DateTime          @db.Date
+  goal      String?
+  rating    Int?
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  values    DiaryEntryValue[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@unique([userId, date])
   @@index([userId, date])

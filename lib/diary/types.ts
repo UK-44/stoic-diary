@@ -3,12 +3,9 @@ import type { ComponentType } from "@/lib/generated/prisma/enums";
 export type { ComponentType };
 
 // --- コンポーネントの config（DiaryComponent.config） ---
-export type FixedMessageConfig = Record<string, never>;
+export type FixedMessageConfig = { message?: string }; // 表示する固定文面
 export type RichTextConfig = { placeholder?: string };
 export type LabeledTextConfig = { groups: string[] }; // ラベル名の配列（例: ["Good","Bad"]）
-
-// --- FormVersionItem.overrides（版ごとの上書き） ---
-export type FixedMessageOverrides = { message: string };
 
 // --- DiaryEntryValue.value（型ごとの入力値） ---
 export type RichTextValue = string; // HTML
@@ -28,10 +25,8 @@ export type ResolvedComponent = {
   value: ComponentValue | null;
 };
 
-/** ある日付に対して解決されたフォーム全体 */
+/** ある日付に対して解決されたフォーム全体（＝ユーザーの項目一覧） */
 export type ResolvedForm = {
-  formVersionId: string;
-  formVersionName: string;
   components: ResolvedComponent[];
 };
 
