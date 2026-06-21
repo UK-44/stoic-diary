@@ -24,7 +24,7 @@ type Props = {
   existing: boolean;
 };
 
-const RATING_LABELS = ["", "悪い", "悪くない", "良い", "最高"];
+const RATING_LABELS = ["", "悪い", "普通", "良い", "最高"];
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export function DiaryEditor({ dateKey, form, initialRating, existing }: Props) {
@@ -100,11 +100,10 @@ export function DiaryEditor({ dateKey, form, initialRating, existing }: Props) {
                 markDirty();
                 setRating(rating === n ? null : n);
               }}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                rating === n
-                  ? "border-zinc-300 bg-zinc-200 text-zinc-900"
-                  : "border-zinc-800 text-zinc-300 hover:border-zinc-600"
-              }`}
+              className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${rating === n
+                ? "border-zinc-300 bg-zinc-200 text-zinc-900"
+                : "border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                }`}
             >
               {RATING_LABELS[n]}
             </button>
