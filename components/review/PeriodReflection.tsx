@@ -5,56 +5,85 @@ import { useRouter } from "next/navigation";
 import { savePeriodReview } from "@/lib/review/actions";
 import type { PeriodType } from "@/lib/generated/prisma/enums";
 
+export type ReviewFields = {
+  goal: string;
+  wentWell: string;
+  couldImprove: string;
+  nextActions: string;
+};
+
 export function PeriodReflection({
   periodType,
   periodStart,
-  initialContent,
-  longTermGoal,
+  initial,
 }: {
   periodType: PeriodType;
   periodStart: string;
-  initialContent: string;
-  longTermGoal: string | null;
+  initial: ReviewFields;
 }) {
   const router = useRouter();
-  const [content, setContent] = useState(initialContent);
+  const [fields, setFields] = useState<ReviewFields>(initial);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+
+  const goalLabel = periodType === "WEEK" ? "週間目標" : "月間目標";
+
+  function set(key: keyof ReviewFields, value: string) {
+    setFields((prev) => ({ ...prev, [key]: value }));
+  }
 
   function handleSave() {
     setMessage(null);
     startTransition(async () => {
-      const r = await savePeriodReview({ periodType, periodStart, content });
+      const r = await savePeriodReview({ periodType, periodStart, ...fields });
       setMessage(r.ok ? "保存しました" : r.error);
       if (r.ok) router.refresh();
     });
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {longTermGoal && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 text-sm text-zinc-400">
-          <span className="text-xs text-zinc-500">長期目標</span>
-          <p className="mt-1 whitespace-pre-line text-zinc-300">{longTermGoal}</p>
-        </div>
-      )}
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={8}
-        placeholder="この期間を振り返って。長期目標に近づけたか、何がうまくいき、何を変えるか…"
-        className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm leading-relaxed outline-none focus:border-zinc-500"
-      />
+    <div className="flex flex-col gap-4">
+      <Block label={goalLabel}>
+        <textarea
+          value={fields.goal}
+          onChange={(e) => set("goal", e.target.value)}
+          rows={2}
+          placeholder={`この${periodType === "WEEK" ? "週" : "月"}の目標`}
+          className={areaCls}
+        />
+      </Block>
+      <Block label="うまくできたこと">
+        <textarea value={fields.wentWell} onChange={(e) => set("wentWell", e.target.value)} rows={3} className={areaCls} />
+      </Block>
+      <Block label="もっと改善できたこと">
+        <textarea value={fields.couldImprove} onChange={(e) => set("couldImprove", e.target.value)} rows={3} className={areaCls} />
+      </Block>
+      <Block label="次のサイクルで取り組むこと">
+        <textarea value={fields.nextActions} onChange={(e) => set("nextActions", e.target.value)} rows={3} className={areaCls} />
+      </Block>
+
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
           disabled={isPending}
           className="self-start rounded bg-zinc-100 px-5 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
         >
-          {isPending ? "保存中…" : "振り返りを保存"}
+          {isPending ? "保存中…" : "保存"}
         </button>
         {message && <span className="text-sm text-zinc-400">{message}</span>}
       </div>
     </div>
   );
 }
+
+function Block({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+const areaCls =
+  "w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm leading-relaxed outline-none focus:border-zinc-500";

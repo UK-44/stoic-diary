@@ -30,7 +30,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
       StarterKit,
       TextStyle,
       Color,
-      Placeholder.configure({ placeholder: placeholder ?? "何か書く…" }),
+      Placeholder.configure({ placeholder: placeholder ?? "…" }),
     ],
     content: value || "",
     editorProps: {
@@ -51,7 +51,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
   });
 
   if (!editor) {
-    return <div className="tiptap text-zinc-600">{placeholder ?? "何か書く…"}</div>;
+    return <div className="tiptap text-zinc-600">{placeholder ?? "…"}</div>;
   }
 
   // 装飾を適用したら選択を折りたたみ、バブルメニューを閉じる。
@@ -116,9 +116,8 @@ function MarkBtn({
       type="button"
       title={title}
       onClick={onClick}
-      className={`flex h-9 w-9 items-center justify-center rounded-lg text-base transition-colors ${
-        active ? "bg-zinc-200 text-zinc-900" : "text-zinc-200 hover:bg-zinc-800"
-      }`}
+      className={`flex h-9 w-9 items-center justify-center rounded-lg text-base transition-colors ${active ? "bg-zinc-200 text-zinc-900" : "text-zinc-200 hover:bg-zinc-800"
+        }`}
     >
       {children}
     </button>

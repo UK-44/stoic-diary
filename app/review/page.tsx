@@ -115,16 +115,17 @@ export default async function ReviewPage({
         </div>
       </section>
 
-      {/* まとめ振り返り */}
+      {/* 目標と振り返り */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-          この期間の振り返り
-        </h2>
         <PeriodReflection
           periodType={periodType}
           periodStart={start}
-          initialContent={review?.content ?? ""}
-          longTermGoal={user.longTermGoal ?? null}
+          initial={{
+            goal: review?.goal ?? "",
+            wentWell: review?.wentWell ?? "",
+            couldImprove: review?.couldImprove ?? "",
+            nextActions: review?.nextActions ?? "",
+          }}
         />
       </section>
 

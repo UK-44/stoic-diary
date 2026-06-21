@@ -22,6 +22,12 @@ enum PeriodType {
   MONTH
 }
 
+enum IdeaLabel {
+  FAMILY
+  WORK
+  MAN
+}
+
 model User {
   id           String          @id // Supabase Auth のユーザー UUID を採用（自動採番しない）
   email        String          @unique
@@ -32,22 +38,40 @@ model User {
   components       DiaryComponent[]
   entries       DiaryEntry[]
   periodReviews PeriodReview[]
+  ideas         Idea[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 }
 
 model PeriodReview {
-  id          String     @id @default(cuid())
-  userId      String
-  periodType  PeriodType
-  periodStart DateTime   @db.Date // 週=日曜始まり / 月=1日
-  content     String?
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id           String     @id @default(cuid())
+  userId       String
+  periodType   PeriodType
+  periodStart  DateTime   @db.Date // 週=日曜始まり / 月=1日
+  goal         String? // 週間/月間の目標
+  wentWell     String? // うまくできたこと
+  couldImprove String? // もっと改善できたこと
+  nextActions  String? // 次のサイクルで取り組むこと
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@unique([userId, periodType, periodStart])
   @@index([userId, periodType, periodStart])
+}
+
+model Idea {
+  id        String     @id @default(cuid())
+  userId    String
+  title     String
+  content   String? // 自由記述（markdown/HTML）
+  rating    Int        @default(0) // 星評価 1..5（0=未評価）
+  label     IdeaLabel?
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 model DiaryComponent {
