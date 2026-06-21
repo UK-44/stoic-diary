@@ -16,9 +16,13 @@ type Props = {
  * （週送りはクライアント側で即時、日付タップでその日を読み込む）。
  */
 export function WeekStrip({ selectedKey, todayKey, entryDates }: Props) {
-  // 表示中の週（選択日とは独立に動かせる）
+  // 表示中の週（選択日とは独立に動かせる）と、切替方向（本文と連動したスライド用）。
   const [viewDate, setViewDate] = useState(selectedKey);
-  useEffect(() => setViewDate(selectedKey), [selectedKey]);
+  const [dir, setDir] = useState(0); // 1=翌週(右から) / -1=前週(左から)
+  useEffect(() => {
+    setViewDate(selectedKey);
+    setDir(0);
+  }, [selectedKey]);
 
   const entrySet = useMemo(() => new Set(entryDates), [entryDates]);
   const days = weekKeys(viewDate);
@@ -26,7 +30,10 @@ export function WeekStrip({ selectedKey, todayKey, entryDates }: Props) {
   const touchX = useRef<number | null>(null);
   const wheelLock = useRef(false);
 
-  const changeWeek = (dir: number) => setViewDate((v) => shiftDateKey(v, dir * 7));
+  const changeWeek = (d: number) => {
+    setDir(d);
+    setViewDate((v) => shiftDateKey(v, d * 7));
+  };
 
   function onTouchStart(e: React.TouchEvent) {
     touchX.current = e.touches[0].clientX;
@@ -60,7 +67,12 @@ export function WeekStrip({ selectedKey, todayKey, entryDates }: Props) {
       >
         ‹
       </button>
-      <div className="grid flex-1 grid-cols-7 gap-1">
+      <div
+        key={viewDate}
+        className={`grid flex-1 grid-cols-7 gap-1 ${
+          dir > 0 ? "slide-in-right" : dir < 0 ? "slide-in-left" : ""
+        }`}
+      >
         {days.map((key) => {
           const selected = key === selectedKey;
           const isToday = key === todayKey;
