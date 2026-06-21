@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
@@ -157,7 +158,9 @@ function MobileListBar({ editor }: { editor: Editor }) {
     (sink ? chain.sinkListItem("listItem") : chain.liftListItem("listItem")).run();
   };
 
-  return (
+  // body 直下へポータルする。エディタの祖先に transform/アニメーションがあると
+  // position:fixed がそのコンテナ基準になり、キーボードに追従しないため。
+  return createPortal(
     <div
       ref={ref}
       className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-zinc-700 bg-zinc-900 px-3 py-2 md:hidden"
@@ -168,7 +171,8 @@ function MobileListBar({ editor }: { editor: Editor }) {
       <ListLevelBtn onClick={() => run(true)}>
         <span aria-hidden>→</span>
       </ListLevelBtn>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
