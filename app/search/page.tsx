@@ -17,7 +17,7 @@ export default async function SearchPage({
   const componentId = c.trim();
 
   const components = await prisma.diaryComponent.findMany({
-    where: { userId: user.id, archivedAt: null },
+    where: { userId: user.id },
     orderBy: { order: "asc" },
     select: { id: true, name: true },
   });

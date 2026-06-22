@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createComponent,
+  deleteComponent,
   moveComponent,
-  setComponentArchived,
   updateComponent,
 } from "@/lib/settings/actions";
 import type { ComponentType } from "@/lib/diary/types";
@@ -17,18 +17,19 @@ export type ComponentRow = {
   placeholder: string;
   groups: string[];
   message: string;
-  archived: boolean;
 };
 
-// テンプレ（種類）は固定。名前と並び順・取捨はユーザーが決める。
+// テンプレ（種類）は固定。名前と並び順はユーザーが決める。不要なら削除する。
 const TEMPLATES: { type: ComponentType; label: string; hint: string }[] = [
   { type: "RICH_TEXT", label: "フリー", hint: "自由記述（箇条書き・太字など）" },
   { type: "LABELED_TEXT", label: "ラベル付き", hint: "見出しに紐づく入力（例: Good / Bad）" },
+  { type: "CHECKBOX_LIST", label: "チェックリスト", hint: "その日の項目を追加してチェック" },
   { type: "FIXED_MESSAGE", label: "固定メッセージ", hint: "毎日表示する自分宛のメッセージ" },
 ];
 const TYPE_LABEL: Record<ComponentType, string> = {
   RICH_TEXT: "フリー",
   LABELED_TEXT: "ラベル付き",
+  CHECKBOX_LIST: "チェックリスト",
   FIXED_MESSAGE: "固定メッセージ",
 };
 
@@ -58,7 +59,8 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
       () =>
         createComponent(type, {
           name,
-          placeholder: type === "RICH_TEXT" ? placeholder : undefined,
+          placeholder:
+            type === "RICH_TEXT" || type === "CHECKBOX_LIST" ? placeholder : undefined,
           groups: type === "LABELED_TEXT" ? splitGroups(groups) : undefined,
           message: type === "FIXED_MESSAGE" ? fixedMsg : undefined,
         }),
@@ -74,7 +76,7 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
       <div className="flex flex-col gap-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
         <h3 className="text-sm font-semibold">項目を追加</h3>
         <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {TEMPLATES.map((t) => (
               <button
                 key={t.type}
@@ -97,11 +99,15 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
             placeholder="項目名（例: 今日にかける想い）"
             className={inputCls}
           />
-          {type === "RICH_TEXT" && (
+          {(type === "RICH_TEXT" || type === "CHECKBOX_LIST") && (
             <input
               value={placeholder}
               onChange={(e) => setPlaceholder(e.target.value)}
-              placeholder="プレースホルダ（任意）"
+              placeholder={
+                type === "CHECKBOX_LIST"
+                  ? "項目追加欄のプレースホルダ（任意）"
+                  : "プレースホルダ（任意）"
+              }
               className={inputCls}
             />
           )}
@@ -169,18 +175,24 @@ function ComponentItem({
   const [groups, setGroups] = useState(component.groups.join(", "));
   const [fixedMsg, setFixedMsg] = useState(component.message);
 
+  function handleDelete() {
+    if (
+      !window.confirm(
+        `「${component.name}」を削除します。\nこの項目に紐づく日記の入力データもすべて削除されます。よろしいですか？`,
+      )
+    )
+      return;
+    onRun(() => deleteComponent(component.id), "削除しました");
+  }
+
   return (
-    <div
-      className={`rounded-lg border p-3 ${
-        component.archived ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-800 bg-zinc-900/50"
-      }`}
-    >
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="flex flex-col">
             <button
               onClick={() => onRun(() => moveComponent(component.id, "up"))}
-              disabled={disabled || isFirst || component.archived}
+              disabled={disabled || isFirst}
               aria-label="上へ"
               className="text-zinc-500 hover:text-zinc-100 disabled:opacity-30"
             >
@@ -188,7 +200,7 @@ function ComponentItem({
             </button>
             <button
               onClick={() => onRun(() => moveComponent(component.id, "down"))}
-              disabled={disabled || isLast || component.archived}
+              disabled={disabled || isLast}
               aria-label="下へ"
               className="text-zinc-500 hover:text-zinc-100 disabled:opacity-30"
             >
@@ -196,13 +208,8 @@ function ComponentItem({
             </button>
           </div>
           <div className="flex flex-col">
-            <span className={component.archived ? "text-zinc-500 line-through" : ""}>
-              {component.name}
-            </span>
-            <span className="text-xs text-zinc-500">
-              {typeLabel}
-              {component.archived && " · 非表示"}
-            </span>
+            <span>{component.name}</span>
+            <span className="text-xs text-zinc-500">{typeLabel}</span>
           </div>
         </div>
         <div className="flex gap-3 text-xs">
@@ -210,11 +217,11 @@ function ComponentItem({
             {editing ? "閉じる" : "編集"}
           </button>
           <button
-            onClick={() => onRun(() => setComponentArchived(component.id, !component.archived))}
+            onClick={handleDelete}
             disabled={disabled}
-            className="text-zinc-400 hover:text-zinc-100"
+            className="text-red-400 hover:text-red-300"
           >
-            {component.archived ? "使う" : "外す"}
+            削除
           </button>
         </div>
       </div>
@@ -222,7 +229,7 @@ function ComponentItem({
       {editing && (
         <div className="mt-3 flex flex-col gap-2 border-t border-zinc-800 pt-3">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="項目名" className={inputCls} />
-          {component.type === "RICH_TEXT" && (
+          {(component.type === "RICH_TEXT" || component.type === "CHECKBOX_LIST") && (
             <input value={placeholder} onChange={(e) => setPlaceholder(e.target.value)} placeholder="プレースホルダ" className={inputCls} />
           )}
           {component.type === "LABELED_TEXT" && (
@@ -236,7 +243,10 @@ function ComponentItem({
               onRun(() =>
                 updateComponent(component.id, {
                   name,
-                  placeholder: component.type === "RICH_TEXT" ? placeholder : undefined,
+                  placeholder:
+                    component.type === "RICH_TEXT" || component.type === "CHECKBOX_LIST"
+                      ? placeholder
+                      : undefined,
                   groups: component.type === "LABELED_TEXT" ? splitGroups(groups) : undefined,
                   message: component.type === "FIXED_MESSAGE" ? fixedMsg : undefined,
                 }),

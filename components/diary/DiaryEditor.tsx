@@ -9,12 +9,15 @@ import {
   type ComponentValue,
   type LabeledTextConfig,
   type LabeledTextValue,
+  type CheckboxListConfig,
+  type CheckboxListValue,
   type ResolvedComponent,
   type ResolvedForm,
 } from "@/lib/diary/types";
 import { RichTextEditor } from "./fields/RichTextEditor";
 import { LabeledText } from "./fields/LabeledText";
 import { FixedMessage } from "./fields/FixedMessage";
+import { CheckboxList } from "./fields/CheckboxList";
 
 type Props = {
   dateKey: string;
@@ -171,6 +174,14 @@ function renderComponent(
         <LabeledText
           groups={(c.config as LabeledTextConfig).groups ?? []}
           value={(value as LabeledTextValue) ?? {}}
+          onChange={onChange}
+        />
+      );
+    case "CHECKBOX_LIST":
+      return (
+        <CheckboxList
+          value={(value as CheckboxListValue) ?? []}
+          placeholder={(c.config as CheckboxListConfig).placeholder}
           onChange={onChange}
         />
       );

@@ -17,7 +17,7 @@ export default async function DiarySettingsPage() {
   const user = await requireUser();
   const components = await prisma.diaryComponent.findMany({
     where: { userId: user.id },
-    orderBy: [{ archivedAt: "asc" }, { order: "asc" }],
+    orderBy: { order: "asc" },
   });
 
   const rows: ComponentRow[] = components.map((c) => {
@@ -31,7 +31,6 @@ export default async function DiarySettingsPage() {
       placeholder: config.placeholder ?? "",
       groups: config.groups ?? [],
       message: config.message ?? "",
-      archived: c.archivedAt !== null,
     };
   });
 

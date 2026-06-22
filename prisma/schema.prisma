@@ -15,6 +15,7 @@ enum ComponentType {
   FIXED_MESSAGE
   RICH_TEXT // Notion 風リッチテキスト（HTML 保存）
   LABELED_TEXT // ラベルに 1:1 で紐づくリッチテキスト群（例: Good/Bad）
+  CHECKBOX_LIST // 毎日その場で項目を追加・チェックする ToDo 型リスト
 }
 
 enum PeriodType {
@@ -82,7 +83,6 @@ model DiaryComponent {
   type       ComponentType
   config     Json              @default("{}")
   order      Int               @default(0) // ユーザーが自由に並び替えできる表示順
-  archivedAt DateTime?
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   values     DiaryEntryValue[]
   createdAt  DateTime          @default(now())

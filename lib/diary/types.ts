@@ -6,11 +6,14 @@ export type { ComponentType };
 export type FixedMessageConfig = { message?: string }; // 表示する固定文面
 export type RichTextConfig = { placeholder?: string };
 export type LabeledTextConfig = { groups: string[] }; // ラベル名の配列（例: ["Good","Bad"]）
+export type CheckboxListConfig = { placeholder?: string }; // 項目追加欄のプレースホルダ
 
 // --- DiaryEntryValue.value（型ごとの入力値） ---
 export type RichTextValue = string; // HTML
 export type LabeledTextValue = Record<string, string>; // ラベル → HTML
-export type ComponentValue = RichTextValue | LabeledTextValue;
+export type CheckboxListItem = { text: string; checked: boolean };
+export type CheckboxListValue = CheckboxListItem[]; // 毎日その場で追加する ToDo 配列
+export type ComponentValue = RichTextValue | LabeledTextValue | CheckboxListValue;
 
 /** 解決済みの 1 コンポーネント（描画に必要な情報を平坦化したもの） */
 export type ResolvedComponent = {
@@ -18,7 +21,7 @@ export type ResolvedComponent = {
   key: string;
   name: string;
   type: ComponentType;
-  config: RichTextConfig | LabeledTextConfig | FixedMessageConfig;
+  config: RichTextConfig | LabeledTextConfig | FixedMessageConfig | CheckboxListConfig;
   /** FIXED_MESSAGE の表示文面（overrides.message） */
   message: string | null;
   /** 既存エントリの入力値（なければ null） */
@@ -30,9 +33,15 @@ export type ResolvedForm = {
   components: ResolvedComponent[];
 };
 
+type AnyConfig =
+  | RichTextConfig
+  | LabeledTextConfig
+  | FixedMessageConfig
+  | CheckboxListConfig;
+
 export function emptyValueFor(
   type: ComponentType,
-  config: RichTextConfig | LabeledTextConfig | FixedMessageConfig,
+  config: AnyConfig,
 ): ComponentValue | null {
   switch (type) {
     case "RICH_TEXT":
@@ -41,6 +50,8 @@ export function emptyValueFor(
       const groups = (config as LabeledTextConfig).groups ?? [];
       return Object.fromEntries(groups.map((g) => [g, ""]));
     }
+    case "CHECKBOX_LIST":
+      return [];
     case "FIXED_MESSAGE":
     default:
       return null;
@@ -51,7 +62,7 @@ export function emptyValueFor(
 export function normalizeValue(
   type: ComponentType,
   raw: unknown,
-  config: RichTextConfig | LabeledTextConfig | FixedMessageConfig,
+  config: AnyConfig,
 ): ComponentValue | null {
   if (type === "RICH_TEXT") {
     if (typeof raw === "string") return raw;
@@ -69,6 +80,15 @@ export function normalizeValue(
         return [g, ""];
       }),
     );
+  }
+  if (type === "CHECKBOX_LIST") {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .filter((it): it is Record<string, unknown> => !!it && typeof it === "object")
+      .map((it) => ({
+        text: typeof it.text === "string" ? it.text : "",
+        checked: it.checked === true,
+      }));
   }
   return null;
 }
@@ -97,8 +117,15 @@ export function previewFromValues(values: { value: unknown }[]): string {
   return "";
 }
 
-/** リッチテキスト/ラベル付きの値から、検索用のプレーンテキストを取り出す。 */
+/** リッチテキスト/ラベル付き/チェックボックスの値から、検索用のプレーンテキストを取り出す。 */
 export function valueToPlainText(value: ComponentValue): string {
+  if (Array.isArray(value)) {
+    // CHECKBOX_LIST: 各項目のテキストを連結する。
+    return value
+      .map((it) => (it && typeof it === "object" ? it.text : ""))
+      .filter((t) => t.trim() !== "")
+      .join(" ");
+  }
   const html = typeof value === "string" ? value : Object.values(value).join(" ");
   return html
     .replace(/<[^>]+>/g, " ")

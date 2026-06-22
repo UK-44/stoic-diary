@@ -5,6 +5,7 @@ import type {
   ComponentValue,
   FixedMessageConfig,
   LabeledTextConfig,
+  CheckboxListConfig,
   ResolvedComponent,
   ResolvedForm,
 } from "./types";
@@ -22,7 +23,7 @@ export async function resolveFormForDate(
 
   const [components, entry] = await Promise.all([
     prisma.diaryComponent.findMany({
-      where: { userId, archivedAt: null },
+      where: { userId },
       orderBy: { order: "asc" },
     }),
     prisma.diaryEntry.findUnique({
@@ -39,7 +40,8 @@ export async function resolveFormForDate(
     const config = (c.config ?? {}) as
       | RichTextConfig
       | LabeledTextConfig
-      | FixedMessageConfig;
+      | FixedMessageConfig
+      | CheckboxListConfig;
     return {
       componentId: c.id,
       key: c.key,

@@ -41,6 +41,7 @@ export type ComponentInput = {
 function buildConfig(type: ComponentType, input: ComponentInput): Prisma.InputJsonValue {
   switch (type) {
     case "RICH_TEXT":
+    case "CHECKBOX_LIST":
       return input.placeholder ? { placeholder: input.placeholder } : {};
     case "LABELED_TEXT":
       return { groups: (input.groups ?? []).filter((g) => g.trim() !== "") };
@@ -102,10 +103,11 @@ export async function updateComponent(
   return { ok: true };
 }
 
-export async function setComponentArchived(
-  id: string,
-  archived: boolean,
-): Promise<ActionResult> {
+/**
+ * 項目を完全に削除する。紐づく日記の入力データ（DiaryEntryValue）も
+ * 外部キーの ON DELETE CASCADE により連動して削除される。
+ */
+export async function deleteComponent(id: string): Promise<ActionResult> {
   const user = await requireUser();
   const existing = await prisma.diaryComponent.findFirst({
     where: { id, userId: user.id },
@@ -113,10 +115,7 @@ export async function setComponentArchived(
   });
   if (!existing) return { ok: false, error: "対象が見つかりません" };
 
-  await prisma.diaryComponent.update({
-    where: { id },
-    data: { archivedAt: archived ? new Date() : null },
-  });
+  await prisma.diaryComponent.delete({ where: { id } });
   revalidatePath("/settings");
   revalidatePath("/");
   return { ok: true };
@@ -129,7 +128,7 @@ export async function moveComponent(
 ): Promise<ActionResult> {
   const user = await requireUser();
   const list = await prisma.diaryComponent.findMany({
-    where: { userId: user.id, archivedAt: null },
+    where: { userId: user.id },
     orderBy: { order: "asc" },
     select: { id: true, order: true },
   });
