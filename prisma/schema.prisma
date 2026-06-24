@@ -16,6 +16,7 @@ enum ComponentType {
   RICH_TEXT // Notion 風リッチテキスト（HTML 保存）
   LABELED_TEXT // ラベルに 1:1 で紐づくリッチテキスト群（例: Good/Bad）
   CHECKBOX_LIST // 毎日その場で項目を追加・チェックする ToDo 型リスト
+  HABIT // 目標日数まで毎日チェックを積み上げる習慣トラッカー
 }
 
 enum PeriodType {

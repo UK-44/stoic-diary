@@ -11,6 +11,7 @@ import {
   type LabeledTextValue,
   type CheckboxListConfig,
   type CheckboxListValue,
+  type HabitValue,
   type ResolvedComponent,
   type ResolvedForm,
 } from "@/lib/diary/types";
@@ -18,6 +19,7 @@ import { RichTextEditor } from "./fields/RichTextEditor";
 import { LabeledText } from "./fields/LabeledText";
 import { FixedMessage } from "./fields/FixedMessage";
 import { CheckboxList } from "./fields/CheckboxList";
+import { HabitField } from "./fields/HabitField";
 
 type Props = {
   dateKey: string;
@@ -182,6 +184,14 @@ function renderComponent(
         <CheckboxList
           value={(value as CheckboxListValue) ?? []}
           placeholder={(c.config as CheckboxListConfig).placeholder}
+          onChange={onChange}
+        />
+      );
+    case "HABIT":
+      return (
+        <HabitField
+          value={(value as HabitValue) ?? {}}
+          habits={c.habit ?? []}
           onChange={onChange}
         />
       );

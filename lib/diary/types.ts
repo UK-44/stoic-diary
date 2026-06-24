@@ -8,12 +8,49 @@ export type RichTextConfig = { placeholder?: string };
 export type LabeledTextConfig = { groups: string[] }; // ラベル名の配列（例: ["Good","Bad"]）
 export type CheckboxListConfig = { placeholder?: string }; // 項目追加欄のプレースホルダ
 
+// --- 習慣（HABIT） ---
+// 1 つの「習慣」コンポーネントの中に、複数の習慣（名前＋難易度）を持てる。
+export type HabitDifficulty = "EASY" | "NORMAL" | "HARD";
+export type HabitItem = {
+  id: string; // 日次の達成状況を日をまたいで紐づけるための安定 ID
+  name: string;
+  difficulty: HabitDifficulty;
+};
+export type HabitConfig = { habits: HabitItem[] };
+/** 難易度ごとの目標日数。 */
+export const HABIT_TARGET_DAYS: Record<HabitDifficulty, number> = {
+  EASY: 21,
+  NORMAL: 66,
+  HARD: 90,
+};
+export const HABIT_DIFFICULTY_LABEL: Record<HabitDifficulty, string> = {
+  EASY: "簡単",
+  NORMAL: "普通",
+  HARD: "難しい",
+};
+
 // --- DiaryEntryValue.value（型ごとの入力値） ---
 export type RichTextValue = string; // HTML
 export type LabeledTextValue = Record<string, string>; // ラベル → HTML
 export type CheckboxListItem = { text: string; checked: boolean };
 export type CheckboxListValue = CheckboxListItem[]; // 毎日その場で追加する ToDo 配列
-export type ComponentValue = RichTextValue | LabeledTextValue | CheckboxListValue;
+// （HABIT の型・定数は上部「習慣（HABIT）」セクションを参照）
+export type HabitValue = Record<string, boolean>; // habitId → その日に達成したか
+export type ComponentValue =
+  | RichTextValue
+  | LabeledTextValue
+  | CheckboxListValue
+  | HabitValue;
+
+/** 習慣 1 件の進捗（config の定義＋集計を描画用に解決したもの）。 */
+export type HabitProgress = {
+  id: string;
+  name: string;
+  difficulty: HabitDifficulty;
+  targetDays: number;
+  /** 選択日より前にチェックした日数（当日分は value 側で加味する）。 */
+  checkedBefore: number;
+};
 
 /** 解決済みの 1 コンポーネント（描画に必要な情報を平坦化したもの） */
 export type ResolvedComponent = {
@@ -21,11 +58,18 @@ export type ResolvedComponent = {
   key: string;
   name: string;
   type: ComponentType;
-  config: RichTextConfig | LabeledTextConfig | FixedMessageConfig | CheckboxListConfig;
+  config:
+    | RichTextConfig
+    | LabeledTextConfig
+    | FixedMessageConfig
+    | CheckboxListConfig
+    | HabitConfig;
   /** FIXED_MESSAGE の表示文面（overrides.message） */
   message: string | null;
   /** 既存エントリの入力値（なければ null） */
   value: ComponentValue | null;
+  /** HABIT の各習慣の進捗（HABIT 以外は null） */
+  habit: HabitProgress[] | null;
 };
 
 /** ある日付に対して解決されたフォーム全体（＝ユーザーの項目一覧） */
@@ -37,7 +81,8 @@ type AnyConfig =
   | RichTextConfig
   | LabeledTextConfig
   | FixedMessageConfig
-  | CheckboxListConfig;
+  | CheckboxListConfig
+  | HabitConfig;
 
 export function emptyValueFor(
   type: ComponentType,
@@ -52,6 +97,8 @@ export function emptyValueFor(
     }
     case "CHECKBOX_LIST":
       return [];
+    case "HABIT":
+      return {};
     case "FIXED_MESSAGE":
     default:
       return null;
@@ -90,6 +137,17 @@ export function normalizeValue(
         checked: it.checked === true,
       }));
   }
+  if (type === "HABIT") {
+    const obj = (raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}) as Record<
+      string,
+      unknown
+    >;
+    const out: HabitValue = {};
+    for (const [habitId, checked] of Object.entries(obj)) {
+      if (checked === true) out[habitId] = true;
+    }
+    return out;
+  }
   return null;
 }
 
@@ -125,6 +183,14 @@ export function valueToPlainText(value: ComponentValue): string {
       .map((it) => (it && typeof it === "object" ? it.text : ""))
       .filter((t) => t.trim() !== "")
       .join(" ");
+  }
+  // HABIT: habitId → boolean のマップ。一覧プレビュー・検索には載せない。
+  if (
+    value &&
+    typeof value === "object" &&
+    Object.values(value).every((v) => typeof v === "boolean")
+  ) {
+    return "";
   }
   const html = typeof value === "string" ? value : Object.values(value).join(" ");
   return html

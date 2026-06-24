@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { dateKeyToUtcDate, isDateKey } from "@/lib/date";
-import type { ComponentType } from "@/lib/diary/types";
+import type { ComponentType, HabitItem } from "@/lib/diary/types";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -36,6 +36,7 @@ export type ComponentInput = {
   placeholder?: string; // RICH_TEXT
   groups?: string[]; // LABELED_TEXT
   message?: string; // FIXED_MESSAGE
+  habits?: HabitItem[]; // HABIT（名前空の行は捨て、ID が無ければ採番）
 };
 
 function buildConfig(type: ComponentType, input: ComponentInput): Prisma.InputJsonValue {
@@ -47,6 +48,16 @@ function buildConfig(type: ComponentType, input: ComponentInput): Prisma.InputJs
       return { groups: (input.groups ?? []).filter((g) => g.trim() !== "") };
     case "FIXED_MESSAGE":
       return { message: input.message ?? "" };
+    case "HABIT":
+      return {
+        habits: (input.habits ?? [])
+          .map((h) => ({
+            id: h.id && h.id.trim() !== "" ? h.id : crypto.randomUUID(),
+            name: h.name.trim(),
+            difficulty: h.difficulty,
+          }))
+          .filter((h) => h.name !== ""),
+      };
     default:
       return {};
   }

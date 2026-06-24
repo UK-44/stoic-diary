@@ -5,6 +5,7 @@ import {
   addMonths,
   dateKeyToUtcDate,
   dateToKey,
+  dayOfMonth,
   isDateKey,
   monthKeys,
   monthLabel,
@@ -15,7 +16,12 @@ import {
 } from "@/lib/date";
 import { RatingTrend } from "@/components/review/RatingTrend";
 import { PeriodReflection } from "@/components/review/PeriodReflection";
-import { previewFromValues } from "@/lib/diary/types";
+import {
+  previewFromValues,
+  HABIT_TARGET_DAYS,
+  type HabitConfig,
+  type HabitValue,
+} from "@/lib/diary/types";
 import type { PeriodType } from "@/lib/generated/prisma/enums";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +75,59 @@ export default async function ReviewPage({
         periodStart: dateKeyToUtcDate(start),
       },
     },
+  });
+
+  // 習慣状況: 各習慣の通算達成日数と、この期間での達成日数を集計する。
+  const habitComponents = await prisma.diaryComponent.findMany({
+    where: { userId: user.id, type: "HABIT" },
+    orderBy: { order: "asc" },
+  });
+  const habitValues =
+    habitComponents.length > 0
+      ? await prisma.diaryEntryValue.findMany({
+          where: {
+            componentId: { in: habitComponents.map((c) => c.id) },
+            entry: { userId: user.id },
+          },
+          select: { componentId: true, value: true, entry: { select: { date: true } } },
+        })
+      : [];
+  const habitStatuses = habitComponents.flatMap((c) => {
+    const habits = (c.config as HabitConfig).habits ?? [];
+    return habits.map((h) => {
+      const targetDays = HABIT_TARGET_DAYS[h.difficulty];
+      let total = 0;
+      const checkedKeys = new Set<string>();
+      for (const v of habitValues) {
+        if (v.componentId !== c.id) continue;
+        if ((v.value as HabitValue | null)?.[h.id] !== true) continue;
+        total += 1;
+        const key = dateToKey(v.entry.date);
+        if (key >= from && key <= to) checkedKeys.add(key);
+      }
+      // 期間内の各日の達成状況（done=達成 / miss=未達成 / future=未来日）。
+      const daily = days.map((key) => ({
+        key,
+        day: dayOfMonth(key),
+        state: checkedKeys.has(key)
+          ? ("done" as const)
+          : key > today
+            ? ("future" as const)
+            : ("miss" as const),
+      }));
+      const remaining = Math.max(0, targetDays - total);
+      return {
+        id: h.id,
+        name: h.name,
+        difficulty: h.difficulty,
+        targetDays,
+        total,
+        periodCount: checkedKeys.size,
+        remaining,
+        achieved: remaining === 0,
+        daily,
+      };
+    });
   });
 
   const prevStart =
@@ -128,6 +187,54 @@ export default async function ReviewPage({
           }}
         />
       </section>
+
+      {/* 習慣状況 */}
+      {habitStatuses.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            習慣状況
+          </h2>
+          <ul className="flex flex-col divide-y divide-zinc-800 rounded-lg border border-zinc-800">
+            {habitStatuses.map((h) => (
+              <li key={h.id} className="flex flex-col gap-3 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm">{h.name}</span>
+                  <span className="shrink-0 text-right text-xs">
+                    {h.achieved ? (
+                      <span className="font-semibold text-emerald-400">目標達成 🎉</span>
+                    ) : (
+                      <span className="text-zinc-400">
+                        残り{" "}
+                        <span className="font-semibold text-zinc-100">{h.remaining}</span>
+                        {" / "}
+                        {h.targetDays} 日
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {/* 期間内の日別達成状況 */}
+                <div className="flex flex-wrap gap-x-1 gap-y-1.5">
+                  {h.daily.map((d) => (
+                    <div key={d.key} className="flex w-5 flex-col items-center gap-1">
+                      <span
+                        title={d.state === "done" ? "達成" : d.state === "miss" ? "未達成" : "未来"}
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          d.state === "done"
+                            ? "bg-emerald-400"
+                            : d.state === "miss"
+                              ? "bg-red-400"
+                              : "bg-zinc-700"
+                        }`}
+                      />
+                      <span className="text-[10px] tabular-nums text-zinc-500">{d.day}</span>
+                    </div>
+                  ))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* 期間内の日記一覧 */}
       <section className="flex flex-col gap-2">

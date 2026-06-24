@@ -8,7 +8,13 @@ import {
   moveComponent,
   updateComponent,
 } from "@/lib/settings/actions";
-import type { ComponentType } from "@/lib/diary/types";
+import {
+  HABIT_DIFFICULTY_LABEL,
+  HABIT_TARGET_DAYS,
+  type ComponentType,
+  type HabitDifficulty,
+  type HabitItem,
+} from "@/lib/diary/types";
 
 export type ComponentRow = {
   id: string;
@@ -17,6 +23,7 @@ export type ComponentRow = {
   placeholder: string;
   groups: string[];
   message: string;
+  habits: HabitItem[];
 };
 
 // テンプレ（種類）は固定。名前と並び順はユーザーが決める。不要なら削除する。
@@ -24,14 +31,103 @@ const TEMPLATES: { type: ComponentType; label: string; hint: string }[] = [
   { type: "RICH_TEXT", label: "フリー", hint: "自由記述（箇条書き・太字など）" },
   { type: "LABELED_TEXT", label: "ラベル付き", hint: "見出しに紐づく入力（例: Good / Bad）" },
   { type: "CHECKBOX_LIST", label: "チェックリスト", hint: "その日の項目を追加してチェック" },
+  { type: "HABIT", label: "習慣", hint: "目標日数までチェックを積み上げる" },
   { type: "FIXED_MESSAGE", label: "固定メッセージ", hint: "毎日表示する自分宛のメッセージ" },
 ];
 const TYPE_LABEL: Record<ComponentType, string> = {
   RICH_TEXT: "フリー",
   LABELED_TEXT: "ラベル付き",
   CHECKBOX_LIST: "チェックリスト",
+  HABIT: "習慣",
   FIXED_MESSAGE: "固定メッセージ",
 };
+const DIFFICULTIES: HabitDifficulty[] = ["EASY", "NORMAL", "HARD"];
+
+/** 難易度を 3 段階のボタンで選ぶ。 */
+function DifficultyPicker({
+  value,
+  onChange,
+}: {
+  value: HabitDifficulty;
+  onChange: (next: HabitDifficulty) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {DIFFICULTIES.map((d) => (
+        <button
+          key={d}
+          type="button"
+          onClick={() => onChange(d)}
+          className={`rounded-lg border p-2 text-center text-xs transition-colors ${
+            value === d
+              ? "border-zinc-300 bg-zinc-800"
+              : "border-zinc-800 hover:border-zinc-600"
+          }`}
+        >
+          <div className="font-medium">{HABIT_DIFFICULTY_LABEL[d]}</div>
+          <div className="mt-0.5 text-zinc-500">{HABIT_TARGET_DAYS[d]}日</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function newHabit(): HabitItem {
+  return { id: crypto.randomUUID(), name: "", difficulty: "NORMAL" };
+}
+
+/** 1 つの習慣コンポーネント内の、複数の習慣（名前＋難易度）を編集する。 */
+function HabitsEditor({
+  value,
+  onChange,
+}: {
+  value: HabitItem[];
+  onChange: (next: HabitItem[]) => void;
+}) {
+  const habits = value;
+
+  const update = (i: number, patch: Partial<HabitItem>) =>
+    onChange(habits.map((h, idx) => (idx === i ? { ...h, ...patch } : h)));
+  const remove = (i: number) => onChange(habits.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="flex flex-col gap-3">
+      {habits.map((h, i) => (
+        <div key={h.id} className="flex flex-col gap-2 rounded-lg border border-zinc-800 p-3">
+          <div className="flex items-center gap-2">
+            <input
+              value={h.name}
+              onChange={(e) => update(i, { name: e.target.value })}
+              placeholder="習慣名（例: 毎朝ストレッチ）"
+              className={`flex-1 ${inputCls}`}
+            />
+            {habits.length > 1 && (
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                aria-label="この習慣を削除"
+                className="shrink-0 px-1 text-zinc-600 hover:text-zinc-300"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <DifficultyPicker
+            value={h.difficulty}
+            onChange={(d) => update(i, { difficulty: d })}
+          />
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...habits, newHabit()])}
+        className="self-start text-xs text-zinc-400 hover:text-zinc-100"
+      >
+        ＋ 習慣を追加
+      </button>
+    </div>
+  );
+}
 
 export function ComponentManager({ components }: { components: ComponentRow[] }) {
   const router = useRouter();
@@ -44,6 +140,7 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
   const [placeholder, setPlaceholder] = useState("");
   const [groups, setGroups] = useState("Good, Bad");
   const [fixedMsg, setFixedMsg] = useState("");
+  const [habits, setHabits] = useState<HabitItem[]>(() => [newHabit()]);
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, ok = "保存しました") {
     setMessage(null);
@@ -63,11 +160,13 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
             type === "RICH_TEXT" || type === "CHECKBOX_LIST" ? placeholder : undefined,
           groups: type === "LABELED_TEXT" ? splitGroups(groups) : undefined,
           message: type === "FIXED_MESSAGE" ? fixedMsg : undefined,
+          habits: type === "HABIT" ? habits : undefined,
         }),
       "追加しました",
     );
     setName("");
     setFixedMsg("");
+    setHabits([newHabit()]);
   }
 
   return (
@@ -128,6 +227,7 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
               className={inputCls}
             />
           )}
+          {type === "HABIT" && <HabitsEditor value={habits} onChange={setHabits} />}
         </div>
         <button onClick={handleCreate} disabled={isPending} className={btnPrimary}>
           追加
@@ -174,6 +274,9 @@ function ComponentItem({
   const [placeholder, setPlaceholder] = useState(component.placeholder);
   const [groups, setGroups] = useState(component.groups.join(", "));
   const [fixedMsg, setFixedMsg] = useState(component.message);
+  const [habits, setHabits] = useState<HabitItem[]>(() =>
+    component.habits.length > 0 ? component.habits : [newHabit()],
+  );
 
   function handleDelete() {
     if (
@@ -238,6 +341,9 @@ function ComponentItem({
           {component.type === "FIXED_MESSAGE" && (
             <textarea value={fixedMsg} onChange={(e) => setFixedMsg(e.target.value)} rows={2} placeholder="固定メッセージ" className={inputCls} />
           )}
+          {component.type === "HABIT" && (
+            <HabitsEditor value={habits} onChange={setHabits} />
+          )}
           <button
             onClick={() =>
               onRun(() =>
@@ -249,6 +355,7 @@ function ComponentItem({
                       : undefined,
                   groups: component.type === "LABELED_TEXT" ? splitGroups(groups) : undefined,
                   message: component.type === "FIXED_MESSAGE" ? fixedMsg : undefined,
+                  habits: component.type === "HABIT" ? habits : undefined,
                 }),
               )
             }

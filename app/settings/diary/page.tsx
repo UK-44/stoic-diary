@@ -7,6 +7,7 @@ import {
 } from "@/components/settings/ComponentManager";
 import type {
   FixedMessageConfig,
+  HabitConfig,
   LabeledTextConfig,
   RichTextConfig,
 } from "@/lib/diary/types";
@@ -23,7 +24,8 @@ export default async function DiarySettingsPage() {
   const rows: ComponentRow[] = components.map((c) => {
     const config = (c.config ?? {}) as RichTextConfig &
       LabeledTextConfig &
-      FixedMessageConfig;
+      FixedMessageConfig &
+      HabitConfig;
     return {
       id: c.id,
       name: c.name,
@@ -31,6 +33,7 @@ export default async function DiarySettingsPage() {
       placeholder: config.placeholder ?? "",
       groups: config.groups ?? [],
       message: config.message ?? "",
+      habits: config.habits ?? [],
     };
   });
 
