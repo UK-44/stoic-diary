@@ -68,6 +68,8 @@ export default async function Home({
           form={form}
           initialRating={selectedEntry?.rating ?? null}
           existing={selectedEntry !== null}
+          longTermGoal={user.longTermGoal ?? null}
+          longTermGoalDate={user.longTermGoalDate ? dateToKey(user.longTermGoalDate) : null}
         />
       </DiaryPane>
     </div>

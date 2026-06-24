@@ -16,6 +16,8 @@ import {
 } from "@/lib/date";
 import { RatingTrend } from "@/components/review/RatingTrend";
 import { PeriodReflection } from "@/components/review/PeriodReflection";
+import { AiReflectionButton } from "@/components/ai/AiReflectionButton";
+import { buildPeriodPrompt } from "@/lib/ai/reflection";
 import {
   previewFromValues,
   HABIT_TARGET_DAYS,
@@ -139,6 +141,35 @@ export default async function ReviewPage({
 
   const base = (start: string) =>
     `/review?period=${periodType === "WEEK" ? "week" : "month"}&start=${start}`;
+
+  // AI振り返り用プロンプト（長期目標＋この期間の各項目の入力情報）。
+  const aiPrompt = buildPeriodPrompt({
+    periodType,
+    periodLabel,
+    longTermGoal: user.longTermGoal ?? null,
+    longTermGoalDate: user.longTermGoalDate ? dateToKey(user.longTermGoalDate) : null,
+    review: {
+      goal: review?.goal ?? "",
+      wentWell: review?.wentWell ?? "",
+      couldImprove: review?.couldImprove ?? "",
+      nextActions: review?.nextActions ?? "",
+    },
+    filledDays: entries.length,
+    totalDays: days.length,
+    avgRating: avg,
+    habits: habitStatuses.map((h) => ({
+      name: h.name,
+      achieved: h.achieved,
+      remaining: h.remaining,
+      targetDays: h.targetDays,
+      periodCount: h.periodCount,
+    })),
+    entries: entries.map((e) => ({
+      date: dateToKey(e.date),
+      ratingLabel: e.rating != null ? RATING_LABELS[e.rating] : null,
+      preview: previewFromValues(e.values),
+    })),
+  });
 
   return (
     <div className="flex flex-col gap-7">
@@ -269,6 +300,9 @@ export default async function ReviewPage({
           </ul>
         )}
       </section>
+
+      {/* 最下部: この期間の入力内容と長期目標を ChatGPT に渡して振り返る */}
+      <AiReflectionButton prompt={aiPrompt} />
     </div>
   );
 }

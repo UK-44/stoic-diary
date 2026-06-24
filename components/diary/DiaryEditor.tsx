@@ -20,6 +20,8 @@ import { LabeledText } from "./fields/LabeledText";
 import { FixedMessage } from "./fields/FixedMessage";
 import { CheckboxList } from "./fields/CheckboxList";
 import { HabitField } from "./fields/HabitField";
+import { AiReflectionButton } from "@/components/ai/AiReflectionButton";
+import { buildDailyPrompt } from "@/lib/ai/reflection";
 
 type Props = {
   dateKey: string;
@@ -27,12 +29,22 @@ type Props = {
   initialRating: number | null;
   /** その日に既にエントリがあるか（未記入なら「日記を書く」から開始） */
   existing: boolean;
+  /** AI振り返り用の長期目標（プロフィール設定） */
+  longTermGoal: string | null;
+  longTermGoalDate: string | null;
 };
 
 const RATING_LABELS = ["", "悪い", "普通", "良い", "最高"];
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-export function DiaryEditor({ dateKey, form, initialRating, existing }: Props) {
+export function DiaryEditor({
+  dateKey,
+  form,
+  initialRating,
+  existing,
+  longTermGoal,
+  longTermGoalDate,
+}: Props) {
   const [started, setStarted] = useState(existing);
   const [rating, setRating] = useState<number | null>(initialRating);
   const [values, setValues] = useState<Record<string, ComponentValue>>(() =>
@@ -124,6 +136,21 @@ export function DiaryEditor({ dateKey, form, initialRating, existing }: Props) {
       ))}
 
       <SaveIndicator status={status} />
+
+      {/* 最下部: 今日の入力内容と長期目標を ChatGPT に渡して振り返る */}
+      <AiReflectionButton
+        buildPrompt={() =>
+          buildDailyPrompt({
+            dateKey,
+            longTermGoal,
+            longTermGoalDate,
+            rating,
+            items: form.components
+              .filter((c) => c.type !== "FIXED_MESSAGE")
+              .map((c) => ({ name: c.name, value: values[c.componentId] ?? null })),
+          })
+        }
+      />
     </div>
   );
 }
