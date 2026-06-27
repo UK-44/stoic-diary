@@ -57,19 +57,19 @@ export function PeriodReflection({
     <div className="flex flex-col gap-4">
       <Block label={goalLabel}>
         <Field
-          value={initial.goal}
+          value={fields.goal}
           placeholder={`この${periodType === "WEEK" ? "週" : "月"}の目標`}
           onChange={(html) => set("goal", html)}
         />
       </Block>
       <Block label="うまくできたこと">
-        <Field value={initial.wentWell} onChange={(html) => set("wentWell", html)} />
+        <Field value={fields.wentWell} onChange={(html) => set("wentWell", html)} />
       </Block>
       <Block label="もっと改善できたこと">
-        <Field value={initial.couldImprove} onChange={(html) => set("couldImprove", html)} />
+        <Field value={fields.couldImprove} onChange={(html) => set("couldImprove", html)} />
       </Block>
       <Block label="次のサイクルで取り組むこと">
-        <Field value={initial.nextActions} onChange={(html) => set("nextActions", html)} />
+        <Field value={fields.nextActions} onChange={(html) => set("nextActions", html)} />
       </Block>
 
       <SaveIndicator status={status} />

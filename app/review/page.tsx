@@ -208,6 +208,7 @@ export default async function ReviewPage({
       {/* 目標と振り返り */}
       <section className="flex flex-col gap-3">
         <PeriodReflection
+          key={`${periodType}:${start}`}
           periodType={periodType}
           periodStart={start}
           initial={{
