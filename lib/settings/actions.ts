@@ -141,6 +141,33 @@ export async function deleteComponent(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+/** ドラッグ並び替え: 指定した id 順で order を振り直す。 */
+export async function reorderComponents(orderedIds: string[]): Promise<ActionResult> {
+  const user = await requireUser();
+  const owned = await prisma.diaryComponent.findMany({
+    where: { userId: user.id },
+    select: { id: true },
+  });
+  const ownedIds = new Set(owned.map((c) => c.id));
+  // 自分の全項目をちょうど 1 回ずつ含むことを検証（不足・重複・他人の項目を弾く）。
+  if (
+    orderedIds.length !== ownedIds.size ||
+    new Set(orderedIds).size !== orderedIds.length ||
+    !orderedIds.every((id) => ownedIds.has(id))
+  ) {
+    return { ok: false, error: "並び替えに失敗しました" };
+  }
+
+  await prisma.$transaction(
+    orderedIds.map((id, i) =>
+      prisma.diaryComponent.update({ where: { id }, data: { order: (i + 1) * 10 } }),
+    ),
+  );
+  revalidatePath("/settings");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 /** 並び順を 1 つ上/下に移動する（隣と order を入れ替え）。 */
 export async function moveComponent(
   id: string,

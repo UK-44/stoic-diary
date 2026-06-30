@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createComponent,
   deleteComponent,
   moveComponent,
+  reorderComponents,
   updateComponent,
 } from "@/lib/settings/actions";
 import {
@@ -151,6 +152,44 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
     });
   }
 
+  // ドラッグ並び替え用のローカル順序。作成/削除でサーバ側が変わったら同期する
+  // （props 変更時に描画中へ反映する React 公式パターン。effect は使わない）。
+  const [items, setItems] = useState(components);
+  const [syncedFrom, setSyncedFrom] = useState(components);
+  if (syncedFrom !== components) {
+    setSyncedFrom(components);
+    setItems(components);
+  }
+  const dragId = useRef<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+
+  function handleDragStart(id: string) {
+    dragId.current = id;
+    setDraggingId(id);
+  }
+  // ドラッグ中のホバー先へ即時に並べ替える（楽観更新）。
+  function handleDragEnter(overId: string) {
+    const fromId = dragId.current;
+    if (!fromId || fromId === overId) return;
+    setItems((prev) => {
+      const from = prev.findIndex((c) => c.id === fromId);
+      const to = prev.findIndex((c) => c.id === overId);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+  function handleDragEnd() {
+    dragId.current = null;
+    setDraggingId(null);
+    const ids = items.map((c) => c.id);
+    // 並びが変わっていなければ保存しない。
+    if (ids.join() === components.map((c) => c.id).join()) return;
+    run(() => reorderComponents(ids), "並び替えました");
+  }
+
   function handleCreate() {
     run(
       () =>
@@ -234,17 +273,21 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
         </button>
       </div>
 
-      {/* 一覧 */}
+      {/* 一覧（グリップをドラッグして並び替え。▲▼ でも移動可） */}
       <div className="flex flex-col gap-2">
-        {components.map((c, i) => (
+        {items.map((c, i) => (
           <ComponentItem
             key={c.id}
             component={c}
             isFirst={i === 0}
-            isLast={i === components.length - 1}
+            isLast={i === items.length - 1}
             onRun={run}
             disabled={isPending}
             typeLabel={TYPE_LABEL[c.type]}
+            isDragging={draggingId === c.id}
+            onDragStart={() => handleDragStart(c.id)}
+            onDragEnter={() => handleDragEnter(c.id)}
+            onDragEnd={handleDragEnd}
           />
         ))}
       </div>
@@ -261,6 +304,10 @@ function ComponentItem({
   onRun,
   disabled,
   typeLabel,
+  isDragging,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
 }: {
   component: ComponentRow;
   isFirst: boolean;
@@ -268,8 +315,14 @@ function ComponentItem({
   onRun: (fn: () => Promise<{ ok: boolean; error?: string }>, ok?: string) => void;
   disabled: boolean;
   typeLabel: string;
+  isDragging: boolean;
+  onDragStart: () => void;
+  onDragEnter: () => void;
+  onDragEnd: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  // グリップを掴んだ時だけ行をドラッグ可能にする（入力欄の選択を妨げない）。
+  const [armed, setArmed] = useState(false);
   const [name, setName] = useState(component.name);
   const [placeholder, setPlaceholder] = useState(component.placeholder);
   const [groups, setGroups] = useState(component.groups.join(", "));
@@ -289,9 +342,31 @@ function ComponentItem({
   }
 
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+    <div
+      draggable={armed}
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnd={() => {
+        setArmed(false);
+        onDragEnd();
+      }}
+      className={`rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 ${
+        isDragging ? "opacity-40" : ""
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
+          {/* ドラッグ用グリップ */}
+          <span
+            role="button"
+            aria-label="ドラッグして並び替え"
+            onMouseDown={() => setArmed(true)}
+            onTouchStart={() => setArmed(true)}
+            className="cursor-grab select-none px-1 text-zinc-600 hover:text-zinc-300 active:cursor-grabbing"
+          >
+            ⠿
+          </span>
           <div className="flex flex-col">
             <button
               onClick={() => onRun(() => moveComponent(component.id, "up"))}
