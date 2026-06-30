@@ -72,16 +72,25 @@ export async function createComponent(
   if (name === "") return { ok: false, error: "項目名を入力してください" };
 
   // key は自動採番（手入力しない）。order は末尾。
-  const [count, agg] = await Promise.all([
-    prisma.diaryComponent.count({ where: { userId: user.id } }),
+  // 件数ベースだと削除後に既存キーと衝突する（@@unique([userId, key])）ため、
+  // 既存の "cN" キーの最大連番 + 1 で採番する。
+  const [existing, agg] = await Promise.all([
+    prisma.diaryComponent.findMany({
+      where: { userId: user.id },
+      select: { key: true },
+    }),
     prisma.diaryComponent.aggregate({ where: { userId: user.id }, _max: { order: true } }),
   ]);
+  const maxKeyNum = existing.reduce((max, c) => {
+    const m = /^c(\d+)$/.exec(c.key);
+    return m ? Math.max(max, Number(m[1])) : max;
+  }, 0);
 
   try {
     await prisma.diaryComponent.create({
       data: {
         userId: user.id,
-        key: `c${count + 1}`,
+        key: `c${maxKeyNum + 1}`,
         name,
         type,
         config: buildConfig(type, input),
