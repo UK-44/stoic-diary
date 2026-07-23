@@ -16,6 +16,29 @@ import {
   type HabitDifficulty,
   type HabitItem,
 } from "@/lib/diary/types";
+import { RichTextEditor } from "@/components/diary/fields/RichTextEditor";
+
+/** 固定メッセージ用のリッチテキスト入力欄（markdown 装飾・YouTube 埋め込み可）。 */
+function FixedMessageEditor({
+  value,
+  onChange,
+  editorKey,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+  editorKey?: string | number;
+}) {
+  return (
+    <div className="rounded border border-zinc-800 bg-zinc-900 px-3 py-2 focus-within:border-zinc-500">
+      <RichTextEditor
+        key={editorKey}
+        value={value}
+        placeholder="表示する固定メッセージ（見出し・箇条書き・YouTube URL も可）"
+        onChange={onChange}
+      />
+    </div>
+  );
+}
 
 export type ComponentRow = {
   id: string;
@@ -142,6 +165,8 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
   const [groups, setGroups] = useState("Good, Bad");
   const [fixedMsg, setFixedMsg] = useState("");
   const [habits, setHabits] = useState<HabitItem[]>(() => [newHabit()]);
+  // 追加成功後にリッチテキスト欄を作り直して空に戻すためのキー。
+  const [createNonce, setCreateNonce] = useState(0);
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, ok = "保存しました") {
     setMessage(null);
@@ -206,6 +231,7 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
     setName("");
     setFixedMsg("");
     setHabits([newHabit()]);
+    setCreateNonce((n) => n + 1);
   }
 
   return (
@@ -258,12 +284,10 @@ export function ComponentManager({ components }: { components: ComponentRow[] })
             />
           )}
           {type === "FIXED_MESSAGE" && (
-            <textarea
+            <FixedMessageEditor
               value={fixedMsg}
-              onChange={(e) => setFixedMsg(e.target.value)}
-              rows={2}
-              placeholder="表示する固定メッセージ"
-              className={inputCls}
+              onChange={setFixedMsg}
+              editorKey={createNonce}
             />
           )}
           {type === "HABIT" && <HabitsEditor value={habits} onChange={setHabits} />}
@@ -414,7 +438,7 @@ function ComponentItem({
             <input value={groups} onChange={(e) => setGroups(e.target.value)} placeholder="ラベル（カンマ区切り）" className={inputCls} />
           )}
           {component.type === "FIXED_MESSAGE" && (
-            <textarea value={fixedMsg} onChange={(e) => setFixedMsg(e.target.value)} rows={2} placeholder="固定メッセージ" className={inputCls} />
+            <FixedMessageEditor value={fixedMsg} onChange={setFixedMsg} />
           )}
           {component.type === "HABIT" && (
             <HabitsEditor value={habits} onChange={setHabits} />
