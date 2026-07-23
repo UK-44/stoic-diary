@@ -14,7 +14,10 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color } from "@tiptap/extension-text-style";
 import Placeholder from "@tiptap/extension-placeholder";
-import Youtube, { getEmbedUrlFromYoutubeUrl } from "@tiptap/extension-youtube";
+import Youtube, {
+  getEmbedUrlFromYoutubeUrl,
+  isValidYoutubeUrl,
+} from "@tiptap/extension-youtube";
 import { TextSelection } from "@tiptap/pm/state";
 
 const COLORS = ["#f87171", "#fbbf24", "#34d399", "#60a5fa", "#c084fc"];
@@ -93,7 +96,13 @@ export function RichTextEditor({ value, placeholder, onChange, editable = true }
     extensions: [
       // trailingNode: 末尾に常に空段落を強制する拡張。リスト後に消せない空行が
       // 残るため無効化する。
-      StarterKit.configure({ trailingNode: false }),
+      // link.shouldAutoLink: YouTube URL はリンク化せず（autolink / linkOnPaste の両方で
+      // 除外）、YouTube 拡張側の埋め込み変換を優先させる。除外しないと URL が
+      // ただのリンク文字列になってしまう。
+      StarterKit.configure({
+        trailingNode: false,
+        link: { shouldAutoLink: (url) => !isValidYoutubeUrl(url) },
+      }),
       TextStyle,
       Color,
       // YouTube 埋め込み。URL を貼り付けると自動でプレイヤーに変換される
