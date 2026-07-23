@@ -2,20 +2,73 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useEditor, EditorContent, type Editor } from "@tiptap/react";
+import {
+  useEditor,
+  EditorContent,
+  ReactNodeViewRenderer,
+  NodeViewWrapper,
+  type Editor,
+  type NodeViewProps,
+} from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color } from "@tiptap/extension-text-style";
 import Placeholder from "@tiptap/extension-placeholder";
-import Youtube from "@tiptap/extension-youtube";
+import Youtube, { getEmbedUrlFromYoutubeUrl } from "@tiptap/extension-youtube";
 import { TextSelection } from "@tiptap/pm/state";
 
 const COLORS = ["#f87171", "#fbbf24", "#34d399", "#60a5fa", "#c084fc"];
 
+/**
+ * YouTube 埋め込みの NodeView。iframe がクリックを奪うためノード選択で消せず、
+ * さらに末尾に段落が無いとカーソルも置けない。ホバー削除ボタンを重ねて必ず
+ * 消せるようにする。保存用の renderHTML は既定のまま（div[data-youtube-video]）。
+ */
+function YoutubeNodeView({ node, deleteNode, editor }: NodeViewProps) {
+  const src =
+    getEmbedUrlFromYoutubeUrl({
+      url: node.attrs.src as string,
+      nocookie: true,
+      controls: true,
+      allowFullscreen: true,
+      startAt: (node.attrs.start as number) || 0,
+      rel: 1,
+    }) ?? (node.attrs.src as string);
+  return (
+    <NodeViewWrapper data-youtube-video="" className="relative">
+      {editor.isEditable && (
+        <button
+          type="button"
+          contentEditable={false}
+          onClick={() => deleteNode()}
+          aria-label="動画を削除"
+          className="absolute right-2 top-2 z-10 rounded bg-zinc-900/80 px-2 py-0.5 text-xs text-zinc-200 opacity-70 transition-opacity hover:bg-zinc-800 hover:opacity-100"
+        >
+          ✕ 削除
+        </button>
+      )}
+      <iframe
+        src={src}
+        allowFullScreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      />
+    </NodeViewWrapper>
+  );
+}
+
+// 削除ボタン付き NodeView を差し込んだ YouTube 拡張。
+const YoutubeEmbed = Youtube.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(YoutubeNodeView);
+  },
+});
+
 type Props = {
   value: string;
   placeholder?: string;
-  onChange: (html: string) => void;
+  onChange?: (html: string) => void;
+  /** false で読み取り専用表示（本文レンダリングのみ・編集UIなし）。 */
+  editable?: boolean;
 };
 
 /**
@@ -24,9 +77,10 @@ type Props = {
  * - 行頭 "- " で箇条書き、Tab でネスト
  * - 文字を選択した時だけバブルメニュー（太字 / 下線 / 文字色）が出る
  * - ⌘/Ctrl+B, ⌘/Ctrl+U も使える
+ * - editable=false で読み取り専用のレンダラとしても使える（固定メッセージ表示等）
  * 保存形式は HTML 文字列。
  */
-export function RichTextEditor({ value, placeholder, onChange }: Props) {
+export function RichTextEditor({ value, placeholder, onChange, editable = true }: Props) {
   // handleKeyDown は useEditor の設定時点で固定されるため、最新の editor を
   // ref 経由で参照する（Tab のリスト階層操作で使う）。
   const editorRef = useRef<Editor | null>(null);
@@ -35,6 +89,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
 
   const editor = useEditor({
     immediatelyRender: false, // Next.js App Router の SSR でハイドレーション不整合を避ける
+    editable,
     extensions: [
       // trailingNode: 末尾に常に空段落を強制する拡張。リスト後に消せない空行が
       // 残るため無効化する。
@@ -43,7 +98,7 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
       Color,
       // YouTube 埋め込み。URL を貼り付けると自動でプレイヤーに変換される
       // （addPasteHandler は既定 true）。nocookie でプライバシー強化ドメインを使う。
-      Youtube.configure({ nocookie: true, width: 640, height: 360 }),
+      YoutubeEmbed.configure({ nocookie: true, width: 640, height: 360 }),
       Placeholder.configure({ placeholder: placeholder ?? "Write" }),
     ],
     content: value || "",
@@ -74,14 +129,19 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
         return false;
       },
     },
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onUpdate: ({ editor }) => onChange?.(editor.getHTML()),
     onFocus: () => setFocused(true),
     onBlur: () => setFocused(false),
   });
   editorRef.current = editor;
 
   if (!editor) {
-    return <div className="tiptap text-zinc-600">{placeholder ?? "Write"}</div>;
+    return <div className="tiptap text-zinc-600">{editable ? placeholder ?? "Write" : ""}</div>;
+  }
+
+  // 読み取り専用: 編集UI（バブル/モバイルバー）は出さず本文だけ表示する。
+  if (!editable) {
+    return <EditorContent editor={editor} />;
   }
 
   // 装飾を適用したら選択を折りたたみ、バブルメニューを閉じる。
