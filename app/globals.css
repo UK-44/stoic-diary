@@ -57,6 +57,22 @@ body {
 .tiptap li > p {
   margin: 0;
 }
+/* YouTube 埋め込み: 幅いっぱい・16:9 でレスポンシブに */
+.tiptap div[data-youtube-video] {
+  margin: 0.5rem 0;
+}
+.tiptap div[data-youtube-video] iframe {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #27272a;
+}
+/* 選択中の埋め込みノードを分かりやすく */
+.tiptap div[data-youtube-video].ProseMirror-selectednode iframe {
+  outline: 2px solid #52525b;
+}
 .tiptap strong {
   font-weight: 700;
 }

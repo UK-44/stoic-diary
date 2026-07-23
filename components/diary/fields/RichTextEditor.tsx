@@ -7,6 +7,7 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color } from "@tiptap/extension-text-style";
 import Placeholder from "@tiptap/extension-placeholder";
+import Youtube from "@tiptap/extension-youtube";
 import { TextSelection } from "@tiptap/pm/state";
 
 const COLORS = ["#f87171", "#fbbf24", "#34d399", "#60a5fa", "#c084fc"];
@@ -40,6 +41,9 @@ export function RichTextEditor({ value, placeholder, onChange }: Props) {
       StarterKit.configure({ trailingNode: false }),
       TextStyle,
       Color,
+      // YouTube 埋め込み。URL を貼り付けると自動でプレイヤーに変換される
+      // （addPasteHandler は既定 true）。nocookie でプライバシー強化ドメインを使う。
+      Youtube.configure({ nocookie: true, width: 640, height: 360 }),
       Placeholder.configure({ placeholder: placeholder ?? "Write" }),
     ],
     content: value || "",
