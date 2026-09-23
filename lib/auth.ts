@@ -7,9 +7,8 @@ import { ensureUserDefaults } from "@/lib/diary/defaults";
 /**
  * 現在ログイン中のオーナーユーザーを返す（未ログインなら null）。
  *
- * 認証検証は proxy.ts の getUser()（トークン更新込み）に任せ、ここでは
- * getClaims()（ローカル JWT 検証・ネットワーク往復なし）で sub/email を読む。
- * これにより毎遷移ごとの Supabase 往復を 1 回減らす。
+ * トークン更新は proxy.ts に任せ、ここでも getClaims()（ローカル JWT 検証・
+ * ネットワーク往復なし）で sub/email を読む。
  * 同一リクエスト内（layout + page など）の重複呼び出しは cache で 1 回にまとめる。
  */
 export const getCurrentUser = cache(async function getCurrentUser() {

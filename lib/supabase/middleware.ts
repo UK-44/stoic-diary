@@ -28,10 +28,11 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // getUser() を呼ぶことでトークンが必要に応じて更新される（重要）。
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() でもトークンは必要に応じて更新される（内部で getSession を呼ぶため・重要）。
+  // 署名鍵が非対称（ES256）なので JWKS による署名検証はローカルで完結し、getUser() と違って
+  // 毎リクエスト（ページ遷移・自動保存の Server Action 含む）の Supabase Auth 往復が発生しない。
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? data.claims : null;
 
   const isPublic = PUBLIC_PATHS.some((p) =>
     request.nextUrl.pathname.startsWith(p),
