@@ -63,6 +63,7 @@
 - [x] LabeledText: ラベルごとに入力欄を出し、変更したラベルだけ更新する
 - [x] FixedMessage: 空の文面（空段落だけ）なら何も表示しない
 - [x] FixedMessage: YouTube 埋め込みだけの文面は表示する
+- [x] StaticRichText: 空行（空の段落 <p></p>）は <br> を入れて 1 行分の高さを持たせる（静的描画で空行が消えた不具合の再発防止）
 
 ## ページ（app/page.tsx, app/diary/[date]/page.tsx）
 - [x] ?d= が無い・不正なら今日を表示する
